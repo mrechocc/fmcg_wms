@@ -14,8 +14,9 @@ policy with finance before production use.
    ERPNext v16 interfaces.
 2. Create a Warehouse with warehouse type `Transit`, for example `In Transit -
    Company`. It must belong to the same company as the source warehouse.
-3. Ensure Stock Users who dispatch can create and submit `Stock Entry`; users
-   who confirm receipt also need permission to create and submit `Delivery Note`.
+3. Ensure users who create transit transfers can create and submit `Customer
+   Shipment` and `Stock Entry`; users who confirm receipt also need permission
+   to create and submit `Delivery Note`.
 4. The first release rejects Sales Order rows with standard stock reservations.
    Unreserve them before dispatch. Reservation migration can be added as a
    separate enhancement after the operating flow is accepted.
@@ -36,15 +37,31 @@ bench restart
 
 ## 4. Daily workflow
 
+### Sales Order action
+
+1. Submit the Sales Order. This does not change inventory.
+2. For customer pickup, choose `Actions > Immediate Delivery`. The app creates
+   and submits a Delivery Note directly from the source warehouse; no transit
+   stock or Customer Shipment is created.
+3. For goods leaving before customer acceptance, choose `Actions > Create
+   Transit Transfer`.
+4. Select the company transit warehouse and expected receipt date, then
+   confirm. The app creates a submitted Customer Shipment and Material Transfer
+   from each item source warehouse to the selected transit warehouse.
+5. The action transfers all currently undelivered quantities. For partial or
+   multi-vehicle dispatch, use the Customer Shipment workflow below instead.
+6. When the customer signs, create a Customer Shipment Receipt, load pending
+   transit items, enter the signed quantity, attach the proof of delivery, and
+   submit. The app creates a Delivery Note from the transit warehouse.
+7. For refused or returned goods, open the Customer Shipment and use `Return
+   All Remaining`.
+
+### Partial dispatch
+
 1. Create a Customer Shipment from one submitted Sales Order.
 2. Select the physical source warehouse and the company transit warehouse.
 3. Enter only the quantity loaded onto the vehicle, then save and select
    `Actions > Confirm Dispatch`. The app creates a submitted Material Transfer.
-4. When the customer signs, create a Customer Shipment Receipt, load pending
-   transit items, enter the signed quantity, attach the proof of delivery, and
-   submit. The app creates a Delivery Note from the transit warehouse.
-5. For refused or returned goods, use `Return All Remaining` on the shipment.
-   The generated Stock Entry is the audit record for the return.
 
 ## 5. Cutover
 
@@ -64,3 +81,7 @@ Stock Ledger, and General Ledger after production cutover.
 4. Returning remaining goods removes them from transit and increases the
    selected return warehouse.
 5. The `In Transit Inventory` report agrees with the transit warehouse balance.
+6. Using the Sales Order action creates one Customer Shipment and one Material
+   Transfer for its currently undelivered quantities.
+7. The Immediate Delivery action creates one submitted Delivery Note from the
+   source warehouse and does not affect the transit warehouse.

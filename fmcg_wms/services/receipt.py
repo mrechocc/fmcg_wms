@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from fmcg_wms.services.delivery import create_delivery_note_from_sales_order
 from fmcg_wms.services.status import get_shipment_status
 
 
@@ -58,44 +59,18 @@ def validate_receipt(receipt) -> None:
 
 
 def _make_delivery_note(receipt, shipment):
-    from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
-
     requested_by_so_item = {}
+    warehouses_by_so_item = {}
     for row in receipt.items:
         requested_by_so_item[row.sales_order_item] = flt(row.accepted_qty)
-
-    delivery_note = make_delivery_note(shipment.sales_order)
-    mapped_rows = []
-    for row in delivery_note.items:
-        requested_qty = requested_by_so_item.get(row.so_detail)
-        if requested_qty is None:
-            continue
-        row.qty = requested_qty
-        row.stock_qty = requested_qty * flt(row.conversion_factor or 1)
-        row.warehouse = shipment.transit_warehouse
-        mapped_rows.append(row)
-
-    if len(mapped_rows) != len(requested_by_so_item):
-        frappe.throw(_("Could not map every accepted item to a pending Sales Order item."))
-
-    delivery_note.items = mapped_rows
-    delivery_note.set_warehouse = shipment.transit_warehouse
-    delivery_note.posting_date = receipt.receipt_date
-    delivery_note.remarks = "\n".join(
-        filter(
-            None,
-            [
-                delivery_note.remarks,
-                _("Created from Customer Shipment {0}, Receipt {1}.").format(shipment.name, receipt.name),
-            ],
-        )
+        warehouses_by_so_item[row.sales_order_item] = shipment.transit_warehouse
+    return create_delivery_note_from_sales_order(
+        shipment.sales_order,
+        requested_by_so_item,
+        warehouses_by_so_item,
+        receipt.receipt_date,
+        _("Created from Customer Shipment {0}, Receipt {1}.").format(shipment.name, receipt.name),
     )
-    delivery_note.run_method("set_missing_values")
-    delivery_note.run_method("set_po_nos")
-    delivery_note.run_method("calculate_taxes_and_totals")
-    delivery_note.insert()
-    delivery_note.submit()
-    return delivery_note
 
 
 def submit_receipt(receipt) -> None:

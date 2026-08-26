@@ -1,0 +1,15 @@
+[
+ {
+  "doctype": "Custom Field",
+  "name": "Sales Order-fmcg_customer_shipment",
+  "dt": "Sales Order",
+  "fieldname": "fmcg_customer_shipment",
+  "label": "在途发运单",
+  "fieldtype": "Link",
+  "options": "Customer Shipment",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "insert_after": "per_delivered",
+  "module": "Fmcg Wms"
+ }
+]
