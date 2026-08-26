@@ -21,7 +21,17 @@ def add_traceability_fields(target, source) -> None:
 
 
 def make_material_transfer(
-    *, company, source_warehouse, target_warehouse, lines, posting_date, remarks, ignore_permissions: bool = False
+    *,
+    company,
+    source_warehouse,
+    target_warehouse,
+    lines,
+    posting_date,
+    remarks,
+    sales_order=None,
+    customer=None,
+    expected_receipt_date=None,
+    ignore_permissions: bool = False,
 ):
     if source_warehouse == target_warehouse:
         frappe.throw(_("Source Warehouse and Transit Warehouse must be different."))
@@ -35,19 +45,31 @@ def make_material_transfer(
     entry.posting_date = posting_date
     entry.remarks = remarks
 
+    entry_meta = frappe.get_meta("Stock Entry")
+    for fieldname, value in {
+        "fmcg_sales_order": sales_order,
+        "fmcg_customer": customer,
+        "fmcg_expected_receipt_date": expected_receipt_date,
+    }.items():
+        if value and entry_meta.has_field(fieldname):
+            entry.set(fieldname, value)
+
+    entry_item_meta = frappe.get_meta("Stock Entry Detail")
     for line in lines:
         qty = flt(line.get("qty") or line.get("dispatched_qty"))
         if qty <= 0:
             frappe.throw(_("Transferred quantity must be greater than zero."))
 
         item = {
-            "item_code": line.item_code,
+            "item_code": line.get("item_code"),
             "qty": qty,
-            "uom": line.uom,
+            "uom": line.get("uom"),
             "conversion_factor": line.get("conversion_factor") or 1,
             "s_warehouse": line.get("source_warehouse") or source_warehouse,
             "t_warehouse": target_warehouse,
         }
+        if line.get("sales_order_item") and entry_item_meta.has_field("fmcg_sales_order_item"):
+            item["fmcg_sales_order_item"] = line.get("sales_order_item")
         add_traceability_fields(item, line)
         entry.append("items", item)
 

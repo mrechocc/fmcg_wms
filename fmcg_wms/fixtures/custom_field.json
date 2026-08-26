@@ -51,6 +51,20 @@
  },
  {
   "doctype": "Custom Field",
+  "name": "Sales Order-fmcg_transit_stock_entry",
+  "dt": "Sales Order",
+  "fieldname": "fmcg_transit_stock_entry",
+  "label": "\u5728\u9014\u7269\u6599\u79fb\u52a8",
+  "fieldtype": "Link",
+  "options": "Stock Entry",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "hidden": 1,
+  "insert_after": "fmcg_expected_receipt_date",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
   "name": "Sales Order-fmcg_customer_shipment",
   "dt": "Sales Order",
   "fieldname": "fmcg_customer_shipment",
@@ -61,6 +75,69 @@
   "allow_on_submit": 1,
   "hidden": 1,
   "insert_after": "fmcg_expected_receipt_date",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Stock Entry-fmcg_transit_section",
+  "dt": "Stock Entry",
+  "fieldname": "fmcg_transit_section",
+  "label": "\u5728\u9014\u8ba2\u5355\u5173\u8054",
+  "fieldtype": "Section Break",
+  "insert_after": "stock_entry_type",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Stock Entry-fmcg_sales_order",
+  "dt": "Stock Entry",
+  "fieldname": "fmcg_sales_order",
+  "label": "\u9500\u552e\u8ba2\u5355",
+  "fieldtype": "Link",
+  "options": "Sales Order",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "in_list_view": 1,
+  "insert_after": "fmcg_transit_section",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Stock Entry-fmcg_customer",
+  "dt": "Stock Entry",
+  "fieldname": "fmcg_customer",
+  "label": "\u5ba2\u6237",
+  "fieldtype": "Link",
+  "options": "Customer",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "in_list_view": 1,
+  "insert_after": "fmcg_sales_order",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Stock Entry-fmcg_expected_receipt_date",
+  "dt": "Stock Entry",
+  "fieldname": "fmcg_expected_receipt_date",
+  "label": "\u9884\u8ba1\u7b7e\u6536\u65e5\u671f",
+  "fieldtype": "Date",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "insert_after": "fmcg_customer",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Stock Entry Detail-fmcg_sales_order_item",
+  "dt": "Stock Entry Detail",
+  "fieldname": "fmcg_sales_order_item",
+  "label": "\u9500\u552e\u8ba2\u5355\u660e\u7ec6",
+  "fieldtype": "Link",
+  "options": "Sales Order Item",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "hidden": 1,
   "module": "Fmcg Wms"
  }
 ]

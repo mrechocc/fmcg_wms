@@ -1,91 +1,64 @@
 # Deployment and Operating Guide
 
-## 1. Scope and accounting assumption
+## Scope
 
-This app assumes the company retains control of goods until the customer
-accepts them. Dispatch moves value between two company warehouses; only a
-submitted Customer Shipment Receipt creates an ERPNext Delivery Note and its
-normal stock/accounting impact. Confirm the contractual revenue-recognition
-policy with finance before production use.
+This app uses ERPNext's standard Sales Order, Stock Entry (Material Transfer),
+and Delivery Note documents. It does not add an operational shipment module.
+Legacy Customer Shipment records are retained only for historical access.
 
-## 2. Prerequisites
+## Prerequisites
 
-1. ERPNext and Frappe must use the same major branch. This app is written for
-   ERPNext v16 interfaces.
-2. Create a Warehouse with warehouse type `Transit`, for example `In Transit -
-   Company`. It must belong to the same company as the source warehouse.
-3. Ensure users who create transit transfers can create and submit `Customer
-   Shipment` and `Stock Entry`; users who confirm receipt also need permission
-   to create and submit `Delivery Note`.
-4. The first release rejects Sales Order rows with standard stock reservations.
-   Unreserve them before dispatch. Reservation migration can be added as a
-   separate enhancement after the operating flow is accepted.
+1. ERPNext and Frappe must use the same major branch. This app targets v16.
+2. Create exactly one active, non-group Warehouse with type `Transit` for each
+   company using this workflow.
+3. Set the Company's Default Warehouse to the central warehouse. If it is not
+   set, the app can use the only active non-Transit warehouse in the company.
+4. Users need permission to create and submit Stock Entry and Delivery Note.
 
-## 3. Installation
+## Installation or Upgrade
 
-Run on the ERPNext server as the Bench user. Do not copy files into the
-`apps/erpnext` directory.
+Run as the Bench user, not `root`.
 
 ```bash
-cd ~/frappe/erpnext-bench
-bench get-app /path/to/fmcg_wms
-bench --site your-site-name install-app fmcg_wms
+cd ~/erpnext-bench/apps/fmcg_wms
+git pull upstream main
+
+cd ~/erpnext-bench
 bench --site your-site-name migrate
 bench build --app fmcg_wms
 bench restart
 ```
 
-## 4. Daily workflow
+## Daily Workflow
 
-### Sales Order action
-
-1. Submit the Sales Order. An `Immediate Delivery` order does not change
-   inventory at this stage. A `Transit Delivery` order automatically creates a
-   submitted Material Transfer from the source warehouse to the default transit
+1. Create the Sales Order and choose `Transit Delivery` or `Immediate Delivery`.
+2. Submit a `Transit Delivery` order. The app automatically creates and submits
+   a standard Stock Entry with purpose `Material Transfer`, moving stock from
+   the central warehouse to the Transit warehouse. The Sales Order opens that
+   Stock Entry directly after submission.
+3. Find, filter, print, or export the transfer in `Stock > Stock Entry`. The
+   Stock Entry includes read-only Sales Order, Customer, and expected receipt
+   date fields for traceability.
+4. When the customer accepts the goods, create a Delivery Note from the Sales
+   Order. The app issues the stock from the Transit warehouse automatically.
+5. For customer pickup, choose `Immediate Delivery` and use `Shipping > Confirm
+   Immediate Delivery`; the Delivery Note issues directly from the central
    warehouse.
-2. In the `Shipping and Delivery` section, choose either `Immediate Delivery`
-   or `Transit Delivery`. The app automatically uses the company's only
-   non-group warehouse with type `Transit` and the Sales Order delivery date.
-   No additional transit fields are required.
-3. For customer pickup, choose `Shipping > Confirm Immediate Delivery`. The app creates
-   and submits a Delivery Note directly from the source warehouse; no transit
-   stock or Customer Shipment is created.
-4. For goods leaving before customer acceptance, the generated Customer
-   Shipment is available from the Sales Order after submission.
-5. The automatic transfer moves all currently undelivered quantities. For partial or
-   multi-vehicle dispatch, use the Customer Shipment workflow below instead.
-7. When the customer signs, create a Customer Shipment Receipt, load pending
-   transit items, enter the signed quantity, attach the proof of delivery, and
-   submit. The app creates a Delivery Note from the transit warehouse.
-8. For refused or returned goods, open the Customer Shipment and use `Return
-   All Remaining`.
+6. For a customer return before delivery, create a standard Material Transfer
+   from the Transit warehouse back to the central warehouse.
 
-### Partial dispatch
+## Reporting
 
-1. Create a Customer Shipment from one submitted Sales Order.
-2. Select the physical source warehouse and the company transit warehouse.
-3. Enter only the quantity loaded onto the vehicle, then save and select
-   `Actions > Confirm Dispatch`. The app creates a submitted Material Transfer.
+Use the standard Stock Entry list for individual movements and its built-in
+export action for CSV or XLSX. The `In Transit Inventory` report also uses
+standard Stock Entry records and compares transferred, delivered, and remaining
+quantities by Sales Order line.
 
-## 5. Cutover
+## Acceptance Checks
 
-Do not delete or mass-cancel historical Delivery Notes. Choose a cutover date,
-list physically unreceived shipments, count the corresponding goods, and have
-finance approve the opening transit value. Use a controlled Stock
-Reconciliation in a test site first, then reconcile the transit warehouse,
-Stock Ledger, and General Ledger after production cutover.
-
-## 6. Acceptance checks
-
-1. Dispatch reduces only the source warehouse and increases the transit
-   warehouse by the same quantity and value.
-2. A partial receipt reduces transit only by the signed quantity and creates a
-   Delivery Note with the same quantity.
-3. Cancelling a receipt cancels its Delivery Note and restores transit quantity.
-4. Returning remaining goods removes them from transit and increases the
-   selected return warehouse.
-5. The `In Transit Inventory` report agrees with the transit warehouse balance.
-6. Using the Sales Order action creates one Customer Shipment and one Material
-   Transfer for its currently undelivered quantities.
-7. The Immediate Delivery action creates one submitted Delivery Note from the
-   source warehouse and does not affect the transit warehouse.
+1. A transit order creates one submitted Material Transfer and reduces the
+   central warehouse by the transferred quantity.
+2. The same quantity appears in the Transit warehouse.
+3. A Delivery Note created from that order uses the Transit warehouse.
+4. The In Transit Inventory report links every new row to a Stock Entry rather
+   than a Customer Shipment.

@@ -12,7 +12,7 @@
  "module": "Fmcg Wms",
  "name": "In Transit Inventory",
  "owner": "Administrator",
- "ref_doctype": "Customer Shipment",
+ "ref_doctype": "Stock Entry",
  "report_name": "In Transit Inventory",
  "report_type": "Script Report",
  "roles": [

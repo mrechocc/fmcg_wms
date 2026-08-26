@@ -3,7 +3,7 @@ from frappe import _
 from frappe.utils import flt, nowdate
 
 from fmcg_wms.services.delivery import create_delivery_note_from_sales_order
-from fmcg_wms.services.shipment import dispatch
+from fmcg_wms.services.stock import make_material_transfer
 
 IMMEDIATE_DELIVERY_MODE = "\u5f53\u573a\u4ea4\u4ed8"
 TRANSIT_DELIVERY_MODE = "\u5728\u9014\u4ea4\u4ed8"
@@ -32,7 +32,7 @@ def get_default_source_warehouse(company: str) -> str | None:
 
 
 def create_transit_transfer(sales_order_name: str, ignore_permissions: bool = False):
-    """Create and submit one controlled transit transfer from a submitted Sales Order."""
+    """Create one standard Stock Entry that moves the order to the transit warehouse."""
     sales_order = frappe.get_doc("Sales Order", sales_order_name)
     sales_order.check_permission("read")
     if sales_order.docstatus != 1:
@@ -40,37 +40,33 @@ def create_transit_transfer(sales_order_name: str, ignore_permissions: bool = Fa
 
     _require_delivery_mode(sales_order, TRANSIT_DELIVERY_MODE)
     transit_warehouse = get_default_transit_warehouse(sales_order.company)
-    _ensure_no_active_shipment(sales_order.name)
+    _ensure_no_active_transit_transfer(sales_order)
     lines = get_dispatch_lines(sales_order)
     if not lines:
         frappe.throw(_("Sales Order {0} has no quantity available for transit dispatch.").format(sales_order.name))
 
-    shipment = frappe.get_doc(
-        {
-            "doctype": "Customer Shipment",
-            "company": sales_order.company,
-            "customer": sales_order.customer,
-            "sales_order": sales_order.name,
-            "source_warehouse": lines[0]["source_warehouse"],
-            "transit_warehouse": transit_warehouse,
-            "dispatch_date": nowdate(),
-            "expected_receipt_date": sales_order.delivery_date,
-            "items": lines,
-            "remarks": _("Created automatically from Sales Order {0} for transit delivery.").format(sales_order.name),
-        }
+    entry = make_material_transfer(
+        company=sales_order.company,
+        source_warehouse=lines[0]["source_warehouse"],
+        target_warehouse=transit_warehouse,
+        lines=lines,
+        posting_date=nowdate(),
+        sales_order=sales_order.name,
+        customer=sales_order.customer,
+        expected_receipt_date=sales_order.delivery_date,
+        remarks=_("Transit transfer created automatically from Sales Order {0}.").format(sales_order.name),
+        ignore_permissions=ignore_permissions,
     )
-    shipment.insert(ignore_permissions=ignore_permissions)
-    shipment = dispatch(shipment.name, ignore_permissions=ignore_permissions)
 
-    if sales_order.meta.has_field("fmcg_customer_shipment"):
-        sales_order.db_set("fmcg_customer_shipment", shipment.name, update_modified=False)
+    if sales_order.meta.has_field("fmcg_transit_warehouse"):
+        sales_order.db_set("fmcg_transit_warehouse", transit_warehouse, update_modified=False)
+    if sales_order.meta.has_field("fmcg_transit_stock_entry"):
+        sales_order.db_set("fmcg_transit_stock_entry", entry.name, update_modified=False)
     sales_order.add_comment(
         "Info",
-        _("Created transit transfer {0} through Customer Shipment {1}.").format(
-            shipment.stock_entry, shipment.name
-        ),
+        _("Created transit Stock Entry {0}.").format(entry.name),
     )
-    return shipment
+    return entry
 
 
 def create_immediate_delivery(sales_order_name: str, posting_date=None):
@@ -81,8 +77,6 @@ def create_immediate_delivery(sales_order_name: str, posting_date=None):
         frappe.throw(_("Only a submitted Sales Order can be delivered."))
     _require_delivery_mode(sales_order, IMMEDIATE_DELIVERY_MODE)
     _require_immediate_delivery_permissions()
-    _ensure_no_active_shipment(sales_order.name)
-
     lines = get_dispatch_lines(sales_order)
     if not lines:
         frappe.throw(_("Sales Order {0} has no quantity available for delivery.").format(sales_order.name))
@@ -152,19 +146,21 @@ def _require_delivery_mode(sales_order, expected_mode: str) -> None:
         frappe.throw(_("Select delivery mode {0} on the Sales Order before continuing.").format(expected_mode))
 
 
-def _ensure_no_active_shipment(sales_order_name: str) -> None:
-    shipment_name = frappe.db.get_value(
-        "Customer Shipment",
-        {
-            "sales_order": sales_order_name,
-            "docstatus": 1,
-            "status": ["in", ["Dispatched", "Partially Received"]],
-        },
-    )
-    if shipment_name:
+def _ensure_no_active_transit_transfer(sales_order) -> None:
+    stock_entry_name = sales_order.get("fmcg_transit_stock_entry")
+    if stock_entry_name and frappe.db.get_value("Stock Entry", stock_entry_name, "docstatus") == 1:
         frappe.throw(
-            _("Sales Order {0} already has Customer Shipment {1} with stock in transit.").format(
-                sales_order_name, shipment_name
+            _("Sales Order {0} already has submitted transit Stock Entry {1}.").format(
+                sales_order.name, stock_entry_name
+            )
+        )
+
+    # Orders created before this upgrade may still point at a legacy shipment.
+    shipment_name = sales_order.get("fmcg_customer_shipment")
+    if shipment_name and frappe.db.get_value("Customer Shipment", shipment_name, "docstatus") == 1:
+        frappe.throw(
+            _("Sales Order {0} already has a legacy transit shipment {1}.").format(
+                sales_order.name, shipment_name
             )
         )
 

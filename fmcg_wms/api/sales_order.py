@@ -14,8 +14,8 @@ def get_default_source_warehouse_for_company(company: str):
 
 @frappe.whitelist()
 def create_transit_transfer(sales_order_name: str):
-    shipment = create_transfer(sales_order_name)
-    return {"shipment": shipment.name, "stock_entry": shipment.stock_entry}
+    stock_entry = create_transfer(sales_order_name)
+    return {"stock_entry": stock_entry.name}
 
 
 @frappe.whitelist()

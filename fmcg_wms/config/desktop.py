@@ -1,13 +1,4 @@
-from frappe import _
-
-
 def get_data():
-    return [
-        {
-            "module_name": "Fmcg Wms",
-            "type": "module",
-            "label": _("快消品WMS系统"),
-            "icon": "octicon octicon-package",
-            "color": "blue",
-        }
-    ]
+    # The workflow uses ERPNext's standard Stock and Selling modules.
+    # Legacy custom records remain searchable but no longer get a desktop module.
+    return []
