@@ -1,9 +1,4 @@
 frappe.ui.form.on("Sales Order", {
-  setup(frm) {
-    frm.set_query("fmcg_transit_warehouse", () => ({
-      filters: { company: frm.doc.company, warehouse_type: "Transit", is_group: 0 },
-    }));
-  },
   refresh(frm) {
     if (frm.doc.docstatus !== 1 || flt(frm.doc.per_delivered) >= 100) return;
 
@@ -35,12 +30,8 @@ function add_immediate_delivery_button(frm) {
 
 function add_transit_transfer_button(frm) {
   frm.add_custom_button(__("\u751f\u6210\u5728\u9014\u8c03\u62e8\u5355"), () => {
-    if (!frm.doc.fmcg_transit_warehouse) {
-      frappe.msgprint(__("\u8bf7\u5148\u5728\u8ba2\u5355\u7684\u53d1\u8d27\u4e0e\u4ea4\u4ed8\u533a\u57df\u9009\u62e9\u5ba2\u6237\u5728\u9014\u4ed3\u3002"));
-      return;
-    }
     frappe.confirm(
-      __("\u7cfb\u7edf\u5c06\u628a\u672c\u9500\u552e\u8ba2\u5355\u5f53\u524d\u672a\u4ea4\u4ed8\u7684\u6570\u91cf\u8f6c\u5165\u5df2\u9009\u5ba2\u6237\u5728\u9014\u4ed3\u3002\u662f\u5426\u7ee7\u7eed\uff1f"),
+      __("\u7cfb\u7edf\u5c06\u628a\u672c\u9500\u552e\u8ba2\u5355\u5f53\u524d\u672a\u4ea4\u4ed8\u7684\u6570\u91cf\u8f6c\u5165\u672c\u516c\u53f8\u9ed8\u8ba4\u5ba2\u6237\u5728\u9014\u4ed3\u3002\u662f\u5426\u7ee7\u7eed\uff1f"),
       () => frappe.call({
         method: "fmcg_wms.api.sales_order.create_transit_transfer",
         args: { sales_order_name: frm.doc.name },

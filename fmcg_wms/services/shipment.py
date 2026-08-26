@@ -20,8 +20,14 @@ def validate_shipment(shipment, validate_reservation: bool = False) -> None:
         sales_order_item = sales_order_items.get(row.sales_order_item)
         if not sales_order_item:
             frappe.throw(_("Row {0}: Sales Order Item does not belong to {1}.").format(row.idx, sales_order.name))
-        if row.item_code != sales_order_item.item_code or row.uom != sales_order_item.uom:
-            frappe.throw(_("Row {0}: Item and UOM must match the linked Sales Order Item.").format(row.idx))
+        if row.item_code != sales_order_item.item_code:
+            frappe.throw(_("Row {0}: Item must match the linked Sales Order Item.").format(row.idx))
+        if row.uom != sales_order_item.uom:
+            frappe.throw(
+                _("Row {0}: UOM {1} must match Sales Order UOM {2}.").format(
+                    row.idx, row.uom, sales_order_item.uom
+                )
+            )
         if flt(row.dispatched_qty) <= 0:
             frappe.throw(_("Row {0}: Dispatched Qty must be greater than zero.").format(row.idx))
         shipment_qty_by_so_item[row.sales_order_item] = (

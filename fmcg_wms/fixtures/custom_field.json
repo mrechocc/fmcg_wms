@@ -30,9 +30,9 @@
   "label": "\u5ba2\u6237\u5728\u9014\u4ed3",
   "fieldtype": "Link",
   "options": "Warehouse",
-  "depends_on": "eval:doc.fmcg_delivery_mode=='\u5728\u9014\u4ea4\u4ed8'",
-  "mandatory_depends_on": "eval:doc.fmcg_delivery_mode=='\u5728\u9014\u4ea4\u4ed8'",
   "allow_on_submit": 1,
+  "read_only": 1,
+  "hidden": 1,
   "insert_after": "fmcg_delivery_mode",
   "module": "Fmcg Wms"
  },
@@ -43,8 +43,9 @@
   "fieldname": "fmcg_expected_receipt_date",
   "label": "\u9884\u8ba1\u7b7e\u6536\u65e5\u671f",
   "fieldtype": "Date",
-  "depends_on": "eval:doc.fmcg_delivery_mode=='\u5728\u9014\u4ea4\u4ed8'",
   "allow_on_submit": 1,
+  "read_only": 1,
+  "hidden": 1,
   "insert_after": "fmcg_transit_warehouse",
   "module": "Fmcg Wms"
  },
@@ -58,7 +59,7 @@
   "options": "Customer Shipment",
   "read_only": 1,
   "allow_on_submit": 1,
-  "read_only_depends_on": "eval:doc.docstatus==1",
+  "hidden": 1,
   "insert_after": "fmcg_expected_receipt_date",
   "module": "Fmcg Wms"
  }

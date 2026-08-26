@@ -17,9 +17,7 @@ def create_transit_transfer(sales_order_name: str):
         frappe.throw(_("Only a submitted Sales Order can create a transit transfer."))
 
     _require_delivery_mode(sales_order, TRANSIT_DELIVERY_MODE)
-    transit_warehouse = sales_order.fmcg_transit_warehouse
-    expected_receipt_date = sales_order.fmcg_expected_receipt_date
-    _validate_transit_warehouse(sales_order.company, transit_warehouse)
+    transit_warehouse = get_default_transit_warehouse(sales_order.company)
     _ensure_no_active_shipment(sales_order.name)
     lines = get_dispatch_lines(sales_order)
     if not lines:
@@ -34,7 +32,7 @@ def create_transit_transfer(sales_order_name: str):
             "source_warehouse": lines[0]["source_warehouse"],
             "transit_warehouse": transit_warehouse,
             "dispatch_date": nowdate(),
-            "expected_receipt_date": expected_receipt_date or sales_order.delivery_date,
+            "expected_receipt_date": sales_order.delivery_date,
             "items": lines,
             "remarks": _("Created from Sales Order {0} by a manual transit transfer action.").format(sales_order.name),
         }
@@ -106,17 +104,23 @@ def get_dispatch_lines(sales_order) -> list[dict]:
     return lines
 
 
-def _validate_transit_warehouse(company: str, transit_warehouse: str) -> None:
-    warehouse = frappe.db.get_value(
+def get_default_transit_warehouse(company: str) -> str:
+    warehouses = frappe.get_all(
         "Warehouse",
-        transit_warehouse,
-        ["company", "warehouse_type", "is_group"],
-        as_dict=True,
+        filters={"company": company, "warehouse_type": "Transit", "is_group": 0},
+        pluck="name",
+        order_by="name asc",
+        limit_page_length=2,
     )
-    if not warehouse or warehouse.company != company:
-        frappe.throw(_("Transit Warehouse must belong to Company {0}.").format(company))
-    if warehouse.warehouse_type != "Transit" or warehouse.is_group:
-        frappe.throw(_("Transit Warehouse must be a non-group Warehouse with type Transit."))
+    if len(warehouses) == 1:
+        return warehouses[0]
+    if not warehouses:
+        frappe.throw(_("Company {0} needs one non-group Warehouse with type Transit.").format(company))
+    frappe.throw(
+        _("Company {0} has multiple Transit Warehouses. Keep one active transit warehouse or add a company setting.").format(
+            company
+        )
+    )
 
 
 def _require_delivery_mode(sales_order, expected_mode: str) -> None:

@@ -41,16 +41,16 @@ bench restart
 
 1. Submit the Sales Order. This does not change inventory.
 2. In the `Shipping and Delivery` section, choose either `Immediate Delivery`
-   or `Transit Delivery`. For transit delivery, also select the transit
-   warehouse and expected receipt date. These fields can be updated after the
-   Sales Order is submitted.
+   or `Transit Delivery`. The app automatically uses the company's only
+   non-group warehouse with type `Transit` and the Sales Order delivery date.
+   No additional transit fields are required.
 3. For customer pickup, choose `Shipping > Confirm Immediate Delivery`. The app creates
    and submits a Delivery Note directly from the source warehouse; no transit
    stock or Customer Shipment is created.
 4. For goods leaving before customer acceptance, choose `Shipping > Create
    Transit Transfer`.
 5. Confirm. The app creates a submitted Customer Shipment and Material Transfer
-   from each item source warehouse to the selected transit warehouse.
+   from each item source warehouse to the default transit warehouse.
 6. The action transfers all currently undelivered quantities. For partial or
    multi-vehicle dispatch, use the Customer Shipment workflow below instead.
 7. When the customer signs, create a Customer Shipment Receipt, load pending

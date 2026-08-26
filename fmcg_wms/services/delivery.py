@@ -9,6 +9,7 @@ def create_delivery_note_from_sales_order(
     warehouses_by_so_item: dict[str, str],
     posting_date,
     remarks: str,
+    allow_transit_delivery: bool = False,
 ):
     """Create one submitted Delivery Note from selected Sales Order quantities."""
     from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
@@ -34,6 +35,7 @@ def create_delivery_note_from_sales_order(
     delivery_note.set_warehouse = mapped_rows[0].warehouse
     delivery_note.posting_date = posting_date
     delivery_note.remarks = "\n".join(filter(None, [delivery_note.remarks, remarks]))
+    delivery_note.flags.fmcg_wms_transit_delivery = allow_transit_delivery
     delivery_note.run_method("set_missing_values")
     delivery_note.run_method("set_po_nos")
     delivery_note.run_method("calculate_taxes_and_totals")

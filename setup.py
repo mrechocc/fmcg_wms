@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="fmcg_wms",
-    version="0.1.0",
+    version="0.2.4",
     description="FMCG warehouse management controls for ERPNext",
     author="快消品WMS系统",
     packages=find_packages(),

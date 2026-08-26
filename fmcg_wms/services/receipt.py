@@ -70,6 +70,7 @@ def _make_delivery_note(receipt, shipment):
         warehouses_by_so_item,
         receipt.receipt_date,
         _("Created from Customer Shipment {0}, Receipt {1}.").format(shipment.name, receipt.name),
+        allow_transit_delivery=True,
     )
 
 
