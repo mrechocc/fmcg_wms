@@ -1,0 +1,1 @@
+recursive-include fmcg_wms *.json *.js *.py *.md

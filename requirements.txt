@@ -1,0 +1,1 @@
+# This app currently has no Python dependencies beyond Frappe and ERPNext.

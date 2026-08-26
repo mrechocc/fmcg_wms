@@ -1,0 +1,38 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "creation": "2026-08-26 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series", "status", "customer_shipment", "company", "customer", "sales_order",
+  "receipt_date", "delivery_note", "proof_of_delivery", "section_items", "items", "remarks"
+ ],
+ "fields": [
+  {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"TT-RCP-.YYYY.-","default":"TT-RCP-.YYYY.-","reqd":1},
+  {"fieldname":"status","fieldtype":"Select","label":"Status","options":"Draft\nReceived\nCancelled","default":"Draft","read_only":1,"allow_on_submit":1,"in_list_view":1},
+  {"fieldname":"customer_shipment","fieldtype":"Link","label":"Customer Shipment","options":"Customer Shipment","reqd":1,"in_list_view":1},
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","read_only":1,"in_list_view":1},
+  {"fieldname":"customer","fieldtype":"Link","label":"Customer","options":"Customer","read_only":1,"in_list_view":1},
+  {"fieldname":"sales_order","fieldtype":"Link","label":"Sales Order","options":"Sales Order","read_only":1,"in_list_view":1},
+  {"fieldname":"receipt_date","fieldtype":"Date","label":"Receipt Date","default":"Today","reqd":1},
+  {"fieldname":"delivery_note","fieldtype":"Link","label":"Delivery Note","options":"Delivery Note","read_only":1,"allow_on_submit":1},
+  {"fieldname":"proof_of_delivery","fieldtype":"Attach","label":"Proof of Delivery"},
+  {"fieldname":"section_items","fieldtype":"Section Break","label":"Accepted Items"},
+  {"fieldname":"items","fieldtype":"Table","label":"Items","options":"Customer Shipment Receipt Item","reqd":1},
+  {"fieldname":"remarks","fieldtype":"Small Text","label":"Remarks"}
+ ],
+ "is_submittable": 1,
+ "module": "Fmcg Wms",
+ "name": "Customer Shipment Receipt",
+ "permissions": [
+  {"role":"Stock User","read":1,"write":1,"create":1,"submit":1,"print":1,"email":1,"share":1},
+  {"role":"Stock Manager","read":1,"write":1,"create":1,"submit":1,"cancel":1,"amend":1,"delete":1,"print":1,"email":1,"share":1},
+  {"role":"Sales User","read":1,"write":1,"create":1,"submit":1,"print":1,"email":1,"share":1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "customer_shipment",
+ "track_changes": 1
+}

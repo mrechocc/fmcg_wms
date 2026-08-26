@@ -1,0 +1,23 @@
+{
+ "actions": [],
+ "creation": "2026-08-26 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["customer_shipment_item", "sales_order_item", "item_code", "item_name", "uom", "accepted_qty", "available_transit_qty"],
+ "fields": [
+  {"fieldname":"customer_shipment_item","fieldtype":"Link","label":"Shipment Item","options":"Customer Shipment Item","reqd":1},
+  {"fieldname":"sales_order_item","fieldtype":"Link","label":"Sales Order Item","options":"Sales Order Item","read_only":1},
+  {"fieldname":"item_code","fieldtype":"Link","label":"Item","options":"Item","read_only":1,"in_list_view":1},
+  {"fieldname":"item_name","fieldtype":"Data","label":"Item Name","read_only":1,"in_list_view":1},
+  {"fieldname":"uom","fieldtype":"Link","label":"UOM","options":"UOM","read_only":1,"in_list_view":1},
+  {"fieldname":"accepted_qty","fieldtype":"Float","label":"Accepted Qty","reqd":1,"in_list_view":1},
+  {"fieldname":"available_transit_qty","fieldtype":"Float","label":"Available Transit Qty","read_only":1,"in_list_view":1}
+ ],
+ "istable": 1,
+ "module": "Fmcg Wms",
+ "name": "Customer Shipment Receipt Item",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

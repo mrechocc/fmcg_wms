@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "creation": "2026-08-26 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series", "status", "company", "customer", "sales_order", "column_break_1",
+  "source_warehouse", "transit_warehouse", "stock_entry", "dispatch_date", "expected_receipt_date",
+  "transporter", "tracking_no", "vehicle_no", "section_items", "items", "section_notes", "remarks"
+ ],
+ "fields": [
+  {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"TT-SHP-.YYYY.-","default":"TT-SHP-.YYYY.-","reqd":1},
+  {"fieldname":"status","fieldtype":"Select","label":"Status","options":"Draft\nDispatched\nPartially Received\nReceived\nReturned\nClosed\nCancelled","default":"Draft","read_only":1,"allow_on_submit":1,"in_list_view":1},
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
+  {"fieldname":"customer","fieldtype":"Link","label":"Customer","options":"Customer","reqd":1,"in_list_view":1},
+  {"fieldname":"sales_order","fieldtype":"Link","label":"Sales Order","options":"Sales Order","reqd":1,"in_list_view":1},
+  {"fieldname":"column_break_1","fieldtype":"Column Break"},
+  {"fieldname":"source_warehouse","fieldtype":"Link","label":"Default Source Warehouse","options":"Warehouse","reqd":1},
+  {"fieldname":"transit_warehouse","fieldtype":"Link","label":"Transit Warehouse","options":"Warehouse","reqd":1},
+  {"fieldname":"stock_entry","fieldtype":"Link","label":"Dispatch Stock Entry","options":"Stock Entry","read_only":1,"allow_on_submit":1},
+  {"fieldname":"dispatch_date","fieldtype":"Date","label":"Dispatch Date","default":"Today"},
+  {"fieldname":"expected_receipt_date","fieldtype":"Date","label":"Expected Receipt Date"},
+  {"fieldname":"transporter","fieldtype":"Link","label":"Transporter","options":"Supplier"},
+  {"fieldname":"tracking_no","fieldtype":"Data","label":"Tracking No"},
+  {"fieldname":"vehicle_no","fieldtype":"Data","label":"Vehicle No"},
+  {"fieldname":"section_items","fieldtype":"Section Break","label":"Items"},
+  {"fieldname":"items","fieldtype":"Table","label":"Items","options":"Customer Shipment Item","reqd":1,"allow_on_submit":1},
+  {"fieldname":"section_notes","fieldtype":"Section Break","label":"Notes"},
+  {"fieldname":"remarks","fieldtype":"Small Text","label":"Remarks"}
+ ],
+ "is_submittable": 1,
+ "module": "Fmcg Wms",
+ "name": "Customer Shipment",
+ "permissions": [
+  {"role":"Stock User","read":1,"write":1,"create":1,"submit":1,"print":1,"email":1,"share":1},
+  {"role":"Stock Manager","read":1,"write":1,"create":1,"submit":1,"cancel":1,"amend":1,"delete":1,"print":1,"email":1,"share":1},
+  {"role":"Sales User","read":1,"print":1,"email":1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "customer",
+ "track_changes": 1
+}
