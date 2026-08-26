@@ -36,7 +36,7 @@ def make_material_transfer(
     entry.remarks = remarks
 
     for line in lines:
-        qty = flt(line.get("qty"))
+        qty = flt(line.get("qty") or line.get("dispatched_qty"))
         if qty <= 0:
             frappe.throw(_("Transferred quantity must be greater than zero."))
 
