@@ -1,0 +1,27 @@
+.fmcg-percent-cell {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 110px;
+}
+
+.fmcg-percent-track {
+  background: var(--control-bg, #e9ecef);
+  border-radius: 3px;
+  flex: 1 1 auto;
+  height: 12px;
+  overflow: hidden;
+}
+
+.fmcg-percent-fill {
+  background: var(--green-500, #5cbf95);
+  height: 100%;
+  min-width: 0;
+}
+
+.fmcg-percent-label {
+  color: var(--text-muted, #6c757d);
+  flex: 0 0 36px;
+  font-size: 12px;
+  text-align: right;
+}
