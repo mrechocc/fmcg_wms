@@ -4,7 +4,7 @@ app_publisher = "快消品WMS系统"
 app_description = "FMCG warehouse management and in-transit inventory controls"
 app_email = "ops@example.invalid"
 app_license = "MIT"
-app_version = "0.2.4"
+app_version = "0.3.0"
 
 doctype_js = {
     "Customer Shipment": "public/js/customer_shipment.js",
@@ -13,8 +13,13 @@ doctype_js = {
 }
 
 doc_events = {
+    "Sales Order": {
+        "on_submit": "fmcg_wms.events.sales_order.auto_dispatch_transit_order",
+    },
     "Delivery Note": {
-        "validate": "fmcg_wms.events.delivery_note.block_manual_transit_delivery",
+        "validate": "fmcg_wms.events.delivery_note.apply_transit_warehouse",
+        "on_submit": "fmcg_wms.events.delivery_note.sync_transit_shipment_on_submit",
+        "on_cancel": "fmcg_wms.events.delivery_note.sync_transit_shipment_on_cancel",
     }
 }
 

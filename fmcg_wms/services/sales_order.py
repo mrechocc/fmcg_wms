@@ -9,7 +9,29 @@ IMMEDIATE_DELIVERY_MODE = "\u5f53\u573a\u4ea4\u4ed8"
 TRANSIT_DELIVERY_MODE = "\u5728\u9014\u4ea4\u4ed8"
 
 
-def create_transit_transfer(sales_order_name: str):
+def get_default_source_warehouse(company: str) -> str | None:
+    """Resolve the company's operational warehouse without ever selecting transit stock."""
+    company_meta = frappe.get_meta("Company")
+    if company_meta.has_field("default_warehouse"):
+        default_warehouse = frappe.db.get_value("Company", company, "default_warehouse")
+        if default_warehouse:
+            warehouse_type, is_group = frappe.db.get_value(
+                "Warehouse", default_warehouse, ["warehouse_type", "is_group"]
+            ) or (None, None)
+            if warehouse_type != "Transit" and not is_group:
+                return default_warehouse
+
+    warehouses = frappe.get_all(
+        "Warehouse",
+        filters={"company": company, "is_group": 0},
+        fields=["name", "warehouse_type"],
+        order_by="name asc",
+    )
+    operational_warehouses = [warehouse.name for warehouse in warehouses if warehouse.warehouse_type != "Transit"]
+    return operational_warehouses[0] if len(operational_warehouses) == 1 else None
+
+
+def create_transit_transfer(sales_order_name: str, ignore_permissions: bool = False):
     """Create and submit one controlled transit transfer from a submitted Sales Order."""
     sales_order = frappe.get_doc("Sales Order", sales_order_name)
     sales_order.check_permission("read")
@@ -34,11 +56,11 @@ def create_transit_transfer(sales_order_name: str):
             "dispatch_date": nowdate(),
             "expected_receipt_date": sales_order.delivery_date,
             "items": lines,
-            "remarks": _("Created from Sales Order {0} by a manual transit transfer action.").format(sales_order.name),
+            "remarks": _("Created automatically from Sales Order {0} for transit delivery.").format(sales_order.name),
         }
     )
-    shipment.insert()
-    shipment = dispatch(shipment.name)
+    shipment.insert(ignore_permissions=ignore_permissions)
+    shipment = dispatch(shipment.name, ignore_permissions=ignore_permissions)
 
     if sales_order.meta.has_field("fmcg_customer_shipment"):
         sales_order.db_set("fmcg_customer_shipment", shipment.name, update_modified=False)
@@ -84,7 +106,7 @@ def get_dispatch_lines(sales_order) -> list[dict]:
         pending_qty = flt(row.qty) - flt(row.delivered_qty)
         if pending_qty <= 0:
             continue
-        source_warehouse = row.warehouse or sales_order.set_warehouse
+        source_warehouse = row.warehouse or sales_order.set_warehouse or get_default_source_warehouse(sales_order.company)
         if not source_warehouse:
             frappe.throw(
                 _("Sales Order Item {0} needs a source warehouse before creating a transit transfer.").format(

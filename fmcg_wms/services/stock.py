@@ -20,7 +20,9 @@ def add_traceability_fields(target, source) -> None:
             target[fieldname] = source.get(fieldname)
 
 
-def make_material_transfer(*, company, source_warehouse, target_warehouse, lines, posting_date, remarks):
+def make_material_transfer(
+    *, company, source_warehouse, target_warehouse, lines, posting_date, remarks, ignore_permissions: bool = False
+):
     if source_warehouse == target_warehouse:
         frappe.throw(_("Source Warehouse and Transit Warehouse must be different."))
 
@@ -49,6 +51,7 @@ def make_material_transfer(*, company, source_warehouse, target_warehouse, lines
         add_traceability_fields(item, line)
         entry.append("items", item)
 
-    entry.insert()
+    entry.flags.ignore_permissions = ignore_permissions
+    entry.insert(ignore_permissions=ignore_permissions)
     entry.submit()
     return entry

@@ -3,7 +3,13 @@ import frappe
 from fmcg_wms.services.sales_order import (
     create_immediate_delivery as create_delivery,
     create_transit_transfer as create_transfer,
+    get_default_source_warehouse,
 )
+
+
+@frappe.whitelist()
+def get_default_source_warehouse_for_company(company: str):
+    return {"warehouse": get_default_source_warehouse(company)}
 
 
 @frappe.whitelist()

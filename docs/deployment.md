@@ -39,7 +39,10 @@ bench restart
 
 ### Sales Order action
 
-1. Submit the Sales Order. This does not change inventory.
+1. Submit the Sales Order. An `Immediate Delivery` order does not change
+   inventory at this stage. A `Transit Delivery` order automatically creates a
+   submitted Material Transfer from the source warehouse to the default transit
+   warehouse.
 2. In the `Shipping and Delivery` section, choose either `Immediate Delivery`
    or `Transit Delivery`. The app automatically uses the company's only
    non-group warehouse with type `Transit` and the Sales Order delivery date.
@@ -47,11 +50,9 @@ bench restart
 3. For customer pickup, choose `Shipping > Confirm Immediate Delivery`. The app creates
    and submits a Delivery Note directly from the source warehouse; no transit
    stock or Customer Shipment is created.
-4. For goods leaving before customer acceptance, choose `Shipping > Create
-   Transit Transfer`.
-5. Confirm. The app creates a submitted Customer Shipment and Material Transfer
-   from each item source warehouse to the default transit warehouse.
-6. The action transfers all currently undelivered quantities. For partial or
+4. For goods leaving before customer acceptance, the generated Customer
+   Shipment is available from the Sales Order after submission.
+5. The automatic transfer moves all currently undelivered quantities. For partial or
    multi-vehicle dispatch, use the Customer Shipment workflow below instead.
 7. When the customer signs, create a Customer Shipment Receipt, load pending
    transit items, enter the signed quantity, attach the proof of delivery, and

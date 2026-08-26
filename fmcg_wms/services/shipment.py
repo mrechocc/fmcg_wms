@@ -69,9 +69,10 @@ def _get_active_transit_qty(sales_order_item_qty: dict) -> dict:
     return {row.sales_order_item: flt(row.qty) for row in rows}
 
 
-def dispatch(shipment_name: str):
+def dispatch(shipment_name: str, ignore_permissions: bool = False):
     shipment = frappe.get_doc("Customer Shipment", shipment_name)
-    shipment.check_permission("submit")
+    if not ignore_permissions:
+        shipment.check_permission("submit")
     if shipment.docstatus != 0:
         frappe.throw(_("Only a draft Customer Shipment can be dispatched."))
 
@@ -83,6 +84,7 @@ def dispatch(shipment_name: str):
         lines=shipment.items,
         posting_date=shipment.dispatch_date or nowdate(),
         remarks=_("Dispatch to transit for Customer Shipment {0}").format(shipment.name),
+        ignore_permissions=ignore_permissions,
     )
     shipment.stock_entry = entry.name
     shipment.status = "Dispatched"
@@ -90,6 +92,7 @@ def dispatch(shipment_name: str):
         row.received_qty = 0
         row.returned_qty = 0
         row.remaining_qty = flt(row.dispatched_qty)
+    shipment.flags.ignore_permissions = ignore_permissions
     shipment.submit()
     shipment.add_comment("Info", _("Dispatched to transit through Stock Entry {0}.").format(entry.name))
     return shipment
