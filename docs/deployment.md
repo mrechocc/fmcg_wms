@@ -40,20 +40,23 @@ bench restart
 ### Sales Order action
 
 1. Submit the Sales Order. This does not change inventory.
-2. For customer pickup, choose `Actions > Immediate Delivery`. The app creates
+2. In the `Shipping and Delivery` section, choose either `Immediate Delivery`
+   or `Transit Delivery`. For transit delivery, also select the transit
+   warehouse and expected receipt date. These fields can be updated after the
+   Sales Order is submitted.
+3. For customer pickup, choose `Shipping > Confirm Immediate Delivery`. The app creates
    and submits a Delivery Note directly from the source warehouse; no transit
    stock or Customer Shipment is created.
-3. For goods leaving before customer acceptance, choose `Actions > Create
+4. For goods leaving before customer acceptance, choose `Shipping > Create
    Transit Transfer`.
-4. Select the company transit warehouse and expected receipt date, then
-   confirm. The app creates a submitted Customer Shipment and Material Transfer
+5. Confirm. The app creates a submitted Customer Shipment and Material Transfer
    from each item source warehouse to the selected transit warehouse.
-5. The action transfers all currently undelivered quantities. For partial or
+6. The action transfers all currently undelivered quantities. For partial or
    multi-vehicle dispatch, use the Customer Shipment workflow below instead.
-6. When the customer signs, create a Customer Shipment Receipt, load pending
+7. When the customer signs, create a Customer Shipment Receipt, load pending
    transit items, enter the signed quantity, attach the proof of delivery, and
    submit. The app creates a Delivery Note from the transit warehouse.
-7. For refused or returned goods, open the Customer Shipment and use `Return
+8. For refused or returned goods, open the Customer Shipment and use `Return
    All Remaining`.
 
 ### Partial dispatch

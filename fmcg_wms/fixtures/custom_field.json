@@ -1,15 +1,65 @@
 [
  {
   "doctype": "Custom Field",
+  "name": "Sales Order-fmcg_delivery_section",
+  "dt": "Sales Order",
+  "fieldname": "fmcg_delivery_section",
+  "label": "\u53d1\u8d27\u4e0e\u4ea4\u4ed8",
+  "fieldtype": "Section Break",
+  "insert_after": "customer",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Sales Order-fmcg_delivery_mode",
+  "dt": "Sales Order",
+  "fieldname": "fmcg_delivery_mode",
+  "label": "\u4ea4\u4ed8\u6a21\u5f0f",
+  "fieldtype": "Select",
+  "options": "\n\u5f53\u573a\u4ea4\u4ed8\n\u5728\u9014\u4ea4\u4ed8",
+  "reqd": 1,
+  "allow_on_submit": 1,
+  "insert_after": "fmcg_delivery_section",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Sales Order-fmcg_transit_warehouse",
+  "dt": "Sales Order",
+  "fieldname": "fmcg_transit_warehouse",
+  "label": "\u5ba2\u6237\u5728\u9014\u4ed3",
+  "fieldtype": "Link",
+  "options": "Warehouse",
+  "depends_on": "eval:doc.fmcg_delivery_mode=='\u5728\u9014\u4ea4\u4ed8'",
+  "mandatory_depends_on": "eval:doc.fmcg_delivery_mode=='\u5728\u9014\u4ea4\u4ed8'",
+  "allow_on_submit": 1,
+  "insert_after": "fmcg_delivery_mode",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Sales Order-fmcg_expected_receipt_date",
+  "dt": "Sales Order",
+  "fieldname": "fmcg_expected_receipt_date",
+  "label": "\u9884\u8ba1\u7b7e\u6536\u65e5\u671f",
+  "fieldtype": "Date",
+  "depends_on": "eval:doc.fmcg_delivery_mode=='\u5728\u9014\u4ea4\u4ed8'",
+  "allow_on_submit": 1,
+  "insert_after": "fmcg_transit_warehouse",
+  "module": "Fmcg Wms"
+ },
+ {
+  "doctype": "Custom Field",
   "name": "Sales Order-fmcg_customer_shipment",
   "dt": "Sales Order",
   "fieldname": "fmcg_customer_shipment",
-  "label": "在途发运单",
+  "label": "\u5728\u9014\u53d1\u8fd0\u5355",
   "fieldtype": "Link",
   "options": "Customer Shipment",
   "read_only": 1,
   "allow_on_submit": 1,
-  "insert_after": "per_delivered",
+  "read_only_depends_on": "eval:doc.docstatus==1",
+  "insert_after": "fmcg_expected_receipt_date",
   "module": "Fmcg Wms"
  }
 ]

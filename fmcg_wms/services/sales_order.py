@@ -5,14 +5,20 @@ from frappe.utils import flt, nowdate
 from fmcg_wms.services.delivery import create_delivery_note_from_sales_order
 from fmcg_wms.services.shipment import dispatch
 
+IMMEDIATE_DELIVERY_MODE = "\u5f53\u573a\u4ea4\u4ed8"
+TRANSIT_DELIVERY_MODE = "\u5728\u9014\u4ea4\u4ed8"
 
-def create_transit_transfer(sales_order_name: str, transit_warehouse: str, expected_receipt_date=None):
+
+def create_transit_transfer(sales_order_name: str):
     """Create and submit one controlled transit transfer from a submitted Sales Order."""
     sales_order = frappe.get_doc("Sales Order", sales_order_name)
     sales_order.check_permission("read")
     if sales_order.docstatus != 1:
         frappe.throw(_("Only a submitted Sales Order can create a transit transfer."))
 
+    _require_delivery_mode(sales_order, TRANSIT_DELIVERY_MODE)
+    transit_warehouse = sales_order.fmcg_transit_warehouse
+    expected_receipt_date = sales_order.fmcg_expected_receipt_date
     _validate_transit_warehouse(sales_order.company, transit_warehouse)
     _ensure_no_active_shipment(sales_order.name)
     lines = get_dispatch_lines(sales_order)
@@ -53,6 +59,7 @@ def create_immediate_delivery(sales_order_name: str, posting_date=None):
     sales_order.check_permission("read")
     if sales_order.docstatus != 1:
         frappe.throw(_("Only a submitted Sales Order can be delivered."))
+    _require_delivery_mode(sales_order, IMMEDIATE_DELIVERY_MODE)
     _require_immediate_delivery_permissions()
     _ensure_no_active_shipment(sales_order.name)
 
@@ -69,10 +76,7 @@ def create_immediate_delivery(sales_order_name: str, posting_date=None):
         posting_date or nowdate(),
         _("Immediate customer pickup delivery created from Sales Order {0}.").format(sales_order.name),
     )
-    sales_order.add_comment(
-        "Info",
-        _("Created immediate pickup Delivery Note {0}.").format(delivery_note.name),
-    )
+    sales_order.add_comment("Info", _("Created immediate pickup Delivery Note {0}.").format(delivery_note.name))
     return delivery_note
 
 
@@ -113,6 +117,13 @@ def _validate_transit_warehouse(company: str, transit_warehouse: str) -> None:
         frappe.throw(_("Transit Warehouse must belong to Company {0}.").format(company))
     if warehouse.warehouse_type != "Transit" or warehouse.is_group:
         frappe.throw(_("Transit Warehouse must be a non-group Warehouse with type Transit."))
+
+
+def _require_delivery_mode(sales_order, expected_mode: str) -> None:
+    if not sales_order.meta.has_field("fmcg_delivery_mode"):
+        frappe.throw(_("Run bench migrate to add the FMCG delivery fields to Sales Order."))
+    if sales_order.fmcg_delivery_mode != expected_mode:
+        frappe.throw(_("Select delivery mode {0} on the Sales Order before continuing.").format(expected_mode))
 
 
 def _ensure_no_active_shipment(sales_order_name: str) -> None:

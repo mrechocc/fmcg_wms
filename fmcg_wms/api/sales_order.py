@@ -7,8 +7,8 @@ from fmcg_wms.services.sales_order import (
 
 
 @frappe.whitelist()
-def create_transit_transfer(sales_order_name: str, transit_warehouse: str, expected_receipt_date=None):
-    shipment = create_transfer(sales_order_name, transit_warehouse, expected_receipt_date)
+def create_transit_transfer(sales_order_name: str):
+    shipment = create_transfer(sales_order_name)
     return {"shipment": shipment.name, "stock_entry": shipment.stock_entry}
 
 
