@@ -4,9 +4,12 @@ app_publisher = "\u5feb\u6d88\u54c1WMS\u7cfb\u7edf"
 app_description = "FMCG warehouse management and in-transit inventory controls"
 app_email = "ops@example.invalid"
 app_license = "MIT"
-app_version = "0.4.0"
+app_version = "0.4.2"
 
-doctype_js = {"Sales Order": "public/js/sales_order.js"}
+doctype_js = {
+    "Sales Order": "public/js/sales_order.js",
+    "Delivery Note": "public/js/delivery_note.js",
+}
 
 doc_events = {
     "Sales Order": {

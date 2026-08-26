@@ -13,16 +13,12 @@ frappe.ui.form.on("Sales Order", {
       add_immediate_delivery_button(frm);
     }
     if (frm.doc.fmcg_delivery_mode === "\u5728\u9014\u4ea4\u4ed8") {
-      add_transit_shipment_button(frm);
+      add_transit_stock_entry_buttons(frm);
     }
   },
   on_submit(frm) {
     if (frm.doc.fmcg_delivery_mode !== "\u5728\u9014\u4ea4\u4ed8") return;
-    frm.reload_doc().then(() => {
-      if (frm.doc.fmcg_transit_stock_entry) {
-        frappe.set_route("Form", "Stock Entry", frm.doc.fmcg_transit_stock_entry);
-      }
-    });
+    frm.reload_doc();
   },
 });
 
@@ -63,7 +59,7 @@ function add_immediate_delivery_button(frm) {
   }, __("\u53d1\u8d27"));
 }
 
-function add_transit_shipment_button(frm) {
+function add_transit_stock_entry_buttons(frm) {
   if (!frm.doc.fmcg_transit_stock_entry) {
     frm.add_custom_button(__("\u8865\u5efa\u7269\u6599\u79fb\u52a8"), () => {
       frappe.confirm(
@@ -74,7 +70,10 @@ function add_transit_shipment_button(frm) {
           freeze: true,
           freeze_message: "\u6b63\u5728\u521b\u5efa\u7269\u6599\u79fb\u52a8...",
           callback(response) {
-            if (response.message) frappe.set_route("Form", "Stock Entry", response.message.stock_entry);
+            if (response.message) {
+              frappe.show_alert({ message: __("\u7269\u6599\u79fb\u52a8\u5df2\u521b\u5efa"), indicator: "green" });
+              frm.reload_doc();
+            }
           },
         }),
       );
@@ -83,5 +82,11 @@ function add_transit_shipment_button(frm) {
   }
   frm.add_custom_button(__("\u67e5\u770b\u7269\u6599\u79fb\u52a8"), () => {
     frappe.set_route("Form", "Stock Entry", frm.doc.fmcg_transit_stock_entry);
+  }, __("\u53d1\u8d27"));
+  frm.add_custom_button(__("\u521b\u5efa\u9500\u552e\u51fa\u5e93\u5355"), () => {
+    frappe.model.open_mapped_doc({
+      method: "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note",
+      frm,
+    });
   }, __("\u53d1\u8d27"));
 }

@@ -34,7 +34,8 @@ def create_delivery_note_from_sales_order(
     delivery_note.items = mapped_rows
     delivery_note.set_warehouse = mapped_rows[0].warehouse
     delivery_note.posting_date = posting_date
-    delivery_note.remarks = "\n".join(filter(None, [delivery_note.remarks, remarks]))
+    if remarks and delivery_note.meta.has_field("remarks"):
+        delivery_note.remarks = "\n".join(filter(None, [delivery_note.get("remarks"), remarks]))
     delivery_note.flags.fmcg_wms_transit_delivery = allow_transit_delivery
     delivery_note.run_method("set_missing_values")
     delivery_note.run_method("set_po_nos")
