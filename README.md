@@ -1,15 +1,21 @@
-# 快消品WMS系统
+# FMCG WMS
 
 `fmcg_wms` is an ERPNext custom app for commercial businesses that need to
-separate vehicle dispatch from customer receipt. It moves goods from an
-operational warehouse to a company-owned transit warehouse at dispatch, then
-creates the Sales Delivery Note only for customer-confirmed quantities. Version
-0.2 adds a controlled Sales Order action that creates a transit transfer only
-when an authorized user explicitly requests it, plus an immediate delivery
-action for customer pickup from the company's warehouse.
+separate dispatch from customer receipt while keeping central warehouse stock
+accurate.
 
-The app intentionally does not patch ERPNext core files. All stock and sales
-transactions are created through standard ERPNext documents.
+Version 0.4 uses ERPNext's existing documents for the operating workflow:
 
-See [docs/deployment.md](docs/deployment.md) for installation, configuration,
-cutover, and acceptance checks.
+- Sales Order selects `Immediate Delivery` or `Transit Delivery`.
+- A submitted Transit Delivery Sales Order automatically creates a standard
+  Stock Entry Material Transfer from the central warehouse to the Transit
+  warehouse.
+- A Delivery Note created from that Sales Order issues from the Transit
+  warehouse.
+- Customer pickup creates a Delivery Note directly from the central warehouse.
+
+The app does not modify ERPNext core files. Legacy Customer Shipment records
+remain available only for historical review; new daily operations use Stock
+Entry and Delivery Note.
+
+See [docs/deployment.md](docs/deployment.md) for installation and daily use.
