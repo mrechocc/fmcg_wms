@@ -61,17 +61,30 @@ bench restart
 ## External ERP Excel Import
 
 1. Log in as a user with the `System Manager` role and open `External ERP Import`.
-2. Select the company, choose `Sales Order` or `Delivery Note`, and attach the
+2. For first-time setup, choose `Customer Master Data`, attach the external customer
+   export, and select the target Customer Group and Territory. Only active rows whose
+   type is Customer are created. No receivable, prepayment, or other financial balance
+   is imported.
+3. Choose `Item Master Data`, attach the external item export, and select the target
+   Item Group and Sales UOM (normally `件`). ERPNext applies its configured Item
+   naming rule; the external item code is stored only as the unique matching key. A
+   packaging value such as `1箱=6瓶` or `1箱=24罐` sets the stock UOM to
+   `瓶` or `罐` and creates the `件` conversion factor. No opening stock,
+   warehouse quantity, or cost is imported. The special `FREIGHT` item is created as
+   a non-stock item.
+4. Use `Preview and Validate` first for each master-data file, then run the import.
+   Correct all errors before importing Sales Orders and Delivery Notes.
+5. Select the company, choose `Sales Order` or `Delivery Note`, and attach the
    matching external ERP Excel export.
-3. Use `Preview and Validate` first. The import stops before creating documents
+6. Use `Preview and Validate` first. The import stops before creating documents
    when a customer, item, warehouse, external order, Sales Order Item, or transit
    quantity cannot be matched.
-4. Import all outstanding external Sales Orders before importing Delivery Notes.
+7. Import all outstanding external Sales Orders before importing Delivery Notes.
    A delivery sheet can refer to orders created before its export date.
-5. Leave `Submit Documents After Validation` unchecked for the first run. Review
+8. Leave `Submit Documents After Validation` unchecked for the first run. Review
    the generated drafts and mapping results. Enabling it submits documents only
    after the whole file passes validation.
-6. Uploading the same file again skips documents with an existing external order
+9. Uploading the same file again skips documents with an existing external order
    number or external delivery number. Negative delivery quantities are reported
    as exceptions and must use a return process.
 

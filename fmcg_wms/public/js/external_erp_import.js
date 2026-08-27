@@ -22,6 +22,10 @@ function run_import(frm, action) {
       import_type: frm.doc.import_type,
       company: frm.doc.company,
       submit_documents: frm.doc.submit_documents || 0,
+      customer_group: frm.doc.customer_group,
+      territory: frm.doc.territory,
+      item_group: frm.doc.item_group,
+      sales_uom: frm.doc.sales_uom,
     },
     freeze: true,
     freeze_message: action === "preview" ? __("\u6b63\u5728\u6821\u9a8c Excel \u6570\u636e...") : __("\u6b63\u5728\u5bfc\u5165\u5916\u90e8 ERP \u6570\u636e..."),
@@ -29,10 +33,12 @@ function run_import(frm, action) {
       const result = response.message || {};
       const errors = result.errors || [];
       const skipped = result.skipped || [];
+      const isMasterData = [__("\u5ba2\u6237\u57fa\u7840\u8d44\u6599"), __("\u7269\u6599\u57fa\u7840\u8d44\u6599")].includes(frm.doc.import_type);
+      const recordLabel = isMasterData ? __("\u57fa\u7840\u8d44\u6599\u8bb0\u5f55") : __("\u5355\u636e");
       const summary = [
         `${__("\u6e90\u660e\u7ec6\u884c")}: ${result.source_rows || 0}`,
-        `${__("\u53ef\u5bfc\u5165\u5355\u636e")}: ${result.ready_documents || 0}`,
-        `${__("\u5df2\u8df3\u8fc7\u5355\u636e")}: ${result.skipped_documents || 0}`,
+        `${__("\u53ef\u5bfc\u5165")}${recordLabel}: ${result.ready_documents || 0}`,
+        `${__("\u5df2\u8df3\u8fc7")}${recordLabel}: ${result.skipped_documents || 0}`,
         `${__("\u5f02\u5e38")}: ${errors.length}`,
       ].join("\n");
       frm.set_value("result_summary", summary);

@@ -16,24 +16,45 @@ from fmcg_wms.services.sales_order import IMMEDIATE_DELIVERY_MODE
 
 SALES_ORDER_IMPORT = "\u9500\u552e\u8ba2\u5355"
 DELIVERY_NOTE_IMPORT = "\u9500\u8d27\u5355"
+CUSTOMER_IMPORT = "\u5ba2\u6237\u57fa\u7840\u8d44\u6599"
+ITEM_IMPORT = "\u7269\u6599\u57fa\u7840\u8d44\u6599"
 
 ORDER_REQUIRED_COLUMNS = {"\u5355\u636e\u7f16\u53f7", "\u5ba2\u6237\u7f16\u7801", "\u5b58\u8d27\u7f16\u7801", "\u6570\u91cf", "\u9500\u552e\u5355\u4f4d", "\u4ed3\u5e93\u7f16\u7801"}
 DELIVERY_REQUIRED_COLUMNS = ORDER_REQUIRED_COLUMNS | {"\u9500\u552e\u8ba2\u5355\u53f7"}
+CUSTOMER_REQUIRED_COLUMNS = {"\u5f80\u6765\u5355\u4f4d\u7f16\u7801", "\u5f80\u6765\u5355\u4f4d\u540d\u79f0", "\u6027\u8d28", "\u505c\u7528"}
+ITEM_REQUIRED_COLUMNS = {"\u5b58\u8d27\u7f16\u7801", "\u5b58\u8d27\u540d\u79f0", "\u6240\u5c5e\u7c7b\u522b", "\u54c1\u724c", "\u8ba1\u91cf\u5355\u4f4d"}
 
 
-def preview_import(file_url: str, import_type: str, company: str) -> dict:
+def preview_import(
+    file_url: str,
+    import_type: str,
+    company: str,
+    customer_group: str | None = None,
+    territory: str | None = None,
+    item_group: str | None = None,
+    sales_uom: str | None = None,
+) -> dict:
     """Parse and validate an uploaded file without creating any document."""
     frappe.only_for("System Manager")
     rows = _read_rows(file_url, import_type)
-    plans, errors = _build_import_plan(rows, import_type, company)
+    plans, errors = _build_import_plan(rows, import_type, company, customer_group, territory, item_group, sales_uom)
     return _result(rows, plans, errors, preview=True)
 
 
-def run_import(file_url: str, import_type: str, company: str, submit_documents: bool = False) -> dict:
+def run_import(
+    file_url: str,
+    import_type: str,
+    company: str,
+    submit_documents: bool = False,
+    customer_group: str | None = None,
+    territory: str | None = None,
+    item_group: str | None = None,
+    sales_uom: str | None = None,
+) -> dict:
     """Create external ERP documents only after the complete file passes validation."""
     frappe.only_for("System Manager")
     rows = _read_rows(file_url, import_type)
-    plans, errors = _build_import_plan(rows, import_type, company)
+    plans, errors = _build_import_plan(rows, import_type, company, customer_group, territory, item_group, sales_uom)
     if errors:
         return _result(rows, plans, errors, preview=False)
 
@@ -43,8 +64,12 @@ def run_import(file_url: str, import_type: str, company: str, submit_documents: 
             continue
         if import_type == SALES_ORDER_IMPORT:
             doc = _create_sales_order(plan, submit_documents)
-        else:
+        elif import_type == DELIVERY_NOTE_IMPORT:
             doc = _create_delivery_note(plan, submit_documents)
+        elif import_type == CUSTOMER_IMPORT:
+            doc = _create_customer(plan)
+        else:
+            doc = _create_item(plan)
         created.append(doc.name)
 
     result = _result(rows, plans, [], preview=False)
@@ -53,9 +78,15 @@ def run_import(file_url: str, import_type: str, company: str, submit_documents: 
 
 
 def _read_rows(file_url: str, import_type: str) -> list[dict[str, Any]]:
-    required_columns = ORDER_REQUIRED_COLUMNS if import_type == SALES_ORDER_IMPORT else DELIVERY_REQUIRED_COLUMNS
-    if import_type not in {SALES_ORDER_IMPORT, DELIVERY_NOTE_IMPORT}:
+    required_columns_by_type = {
+        SALES_ORDER_IMPORT: ORDER_REQUIRED_COLUMNS,
+        DELIVERY_NOTE_IMPORT: DELIVERY_REQUIRED_COLUMNS,
+        CUSTOMER_IMPORT: CUSTOMER_REQUIRED_COLUMNS,
+        ITEM_IMPORT: ITEM_REQUIRED_COLUMNS,
+    }
+    if import_type not in required_columns_by_type:
         frappe.throw(_("Unsupported import type."))
+    required_columns = required_columns_by_type[import_type]
 
     file_name = frappe.db.get_value("File", {"file_url": file_url}, "name")
     if not file_name:
@@ -74,7 +105,7 @@ def _read_rows(file_url: str, import_type: str) -> list[dict[str, Any]]:
     rows = []
     for excel_row, values in enumerate(worksheet.iter_rows(min_row=header_row + 1), start=header_row + 1):
         row = {header: _cell_value(values[index]) for header, index in headers.items()}
-        if _text(row.get("\u5355\u636e\u7f16\u53f7")):
+        if _row_has_import_key(row, import_type):
             row["_row_number"] = excel_row
             rows.append(row)
     if not rows:
@@ -103,23 +134,89 @@ def _cell_value(cell):
     return value
 
 
-def _build_import_plan(rows: list[dict], import_type: str, company: str) -> tuple[list[dict], list[str]]:
+def _build_import_plan(
+    rows: list[dict],
+    import_type: str,
+    company: str,
+    customer_group: str | None,
+    territory: str | None,
+    item_group: str | None,
+    sales_uom: str | None,
+) -> tuple[list[dict], list[str]]:
     if not frappe.db.exists("Company", company):
         return [], [_('Company "{0}" does not exist.').format(company)]
     _require_external_fields()
-    groups = _group_rows(rows, "\u5355\u636e\u7f16\u53f7")
+    key_field = {
+        SALES_ORDER_IMPORT: "\u5355\u636e\u7f16\u53f7",
+        DELIVERY_NOTE_IMPORT: "\u5355\u636e\u7f16\u53f7",
+        CUSTOMER_IMPORT: "\u5f80\u6765\u5355\u4f4d\u7f16\u7801",
+        ITEM_IMPORT: "\u5b58\u8d27\u7f16\u7801",
+    }[import_type]
+    groups = _group_rows(rows, key_field)
     plans, errors = [], []
     for external_document_no, document_rows in groups.items():
         try:
-            plan = (
-                _plan_sales_order(external_document_no, document_rows, company)
-                if import_type == SALES_ORDER_IMPORT
-                else _plan_delivery_note(external_document_no, document_rows, company)
-            )
+            if import_type == SALES_ORDER_IMPORT:
+                plan = _plan_sales_order(external_document_no, document_rows, company)
+            elif import_type == DELIVERY_NOTE_IMPORT:
+                plan = _plan_delivery_note(external_document_no, document_rows, company)
+            elif import_type == CUSTOMER_IMPORT:
+                plan = _plan_customer(external_document_no, document_rows, customer_group, territory)
+            else:
+                plan = _plan_item(external_document_no, document_rows, item_group, sales_uom)
             plans.append(plan)
         except frappe.ValidationError as exc:
             errors.append(_document_error(external_document_no, str(exc)))
     return plans, errors
+
+
+def _plan_customer(
+    external_code: str, rows: list[dict], customer_group: str | None, territory: str | None
+) -> dict:
+    if len(rows) != 1:
+        frappe.throw(_("Customer code {0} appears more than once in the Excel file.").format(external_code))
+    row = rows[0]
+    if _text(row.get("\u6027\u8d28")) != "\u5ba2\u6237" or _text(row.get("\u505c\u7528")) in {"\u662f", "yes", "y", "true", "1"}:
+        return {"external_no": external_code, "rows": rows, "skip": True, "existing": _("Filtered: not an active customer")}
+    if frappe.db.exists("Customer", {"fmcg_external_customer_code": external_code}):
+        existing = frappe.db.get_value("Customer", {"fmcg_external_customer_code": external_code}, "name")
+        return {"external_no": external_code, "rows": rows, "skip": True, "existing": existing}
+    _require_link("Customer Group", customer_group, _("Customer Group"))
+    _require_link("Territory", territory, _("Territory"))
+    return {
+        "external_no": external_code,
+        "rows": rows,
+        "skip": False,
+        "customer_name": _required_value(row, "\u5f80\u6765\u5355\u4f4d\u540d\u79f0"),
+        "customer_group": customer_group,
+        "territory": territory,
+    }
+
+
+def _plan_item(external_code: str, rows: list[dict], item_group: str | None, sales_uom: str | None) -> dict:
+    if len(rows) != 1:
+        frappe.throw(_("Item code {0} appears more than once in the Excel file.").format(external_code))
+    row = rows[0]
+    existing = frappe.db.get_value("Item", {"fmcg_external_item_code": external_code}, "name")
+    if existing:
+        return {"external_no": external_code, "rows": rows, "skip": True, "existing": existing}
+    _require_link("Item Group", item_group, _("Item Group"))
+    _require_link("UOM", sales_uom, _("Sales UOM"))
+    is_freight = external_code.upper() == "FREIGHT"
+    packaging = _parse_packaging(row) if not is_freight else {"stock_uom": sales_uom, "conversion_factor": 1}
+    _require_link("UOM", packaging["stock_uom"], _("Stock UOM"))
+    return {
+        "external_no": external_code,
+        "rows": rows,
+        "skip": False,
+        "item_name": _required_value(row, "\u5b58\u8d27\u540d\u79f0"),
+        "item_group": item_group,
+        "stock_uom": packaging["stock_uom"],
+        "sales_uom": sales_uom,
+        "conversion_factor": packaging["conversion_factor"],
+        "description": _item_description(row),
+        "is_stock_item": 0 if is_freight else 1,
+    }
 
 
 def _plan_sales_order(external_order_no: str, rows: list[dict], company: str) -> dict:
@@ -310,6 +407,37 @@ def _create_delivery_note(plan: dict, submit_documents: bool):
     return delivery_note
 
 
+def _create_customer(plan: dict):
+    customer = frappe.new_doc("Customer")
+    customer.customer_name = plan["customer_name"]
+    customer.customer_type = "Company"
+    customer.customer_group = plan["customer_group"]
+    customer.territory = plan["territory"]
+    customer.fmcg_external_customer_code = plan["external_no"]
+    customer.insert()
+    return customer
+
+
+def _create_item(plan: dict):
+    item = frappe.new_doc("Item")
+    item.item_name = plan["item_name"]
+    item.item_group = plan["item_group"]
+    item.stock_uom = plan["stock_uom"]
+    item.sales_uom = plan["sales_uom"]
+    item.is_stock_item = plan["is_stock_item"]
+    item.description = plan["description"]
+    item.fmcg_external_item_code = plan["external_no"]
+    if plan["sales_uom"] != plan["stock_uom"]:
+        item.append(
+            "uoms",
+            {"uom": plan["sales_uom"], "conversion_factor": plan["conversion_factor"]},
+        )
+    # Let ERPNext apply its configured Item naming rule instead of using the external code.
+    item.run_method("set_missing_values")
+    item.insert()
+    return item
+
+
 def _resolve_customer(row: dict) -> str:
     external_code = _required_value(row, "\u5ba2\u6237\u7f16\u7801")
     customer_name = _text(row.get("\u5ba2\u6237"))
@@ -445,3 +573,42 @@ def _text(value: Any) -> str:
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value).strip()
+
+
+def _row_has_import_key(row: dict, import_type: str) -> bool:
+    fieldname = {
+        SALES_ORDER_IMPORT: "\u5355\u636e\u7f16\u53f7",
+        DELIVERY_NOTE_IMPORT: "\u5355\u636e\u7f16\u53f7",
+        CUSTOMER_IMPORT: "\u5f80\u6765\u5355\u4f4d\u7f16\u7801",
+        ITEM_IMPORT: "\u5b58\u8d27\u7f16\u7801",
+    }[import_type]
+    return bool(_text(row.get(fieldname)))
+
+
+def _require_link(doctype: str, value: str | None, label: str) -> None:
+    if not value or not frappe.db.exists(doctype, value):
+        frappe.throw(_("Select an existing {0} before importing.").format(label))
+
+
+def _item_description(row: dict) -> str:
+    details = [
+        (_("Specification"), _text(row.get("\u89c4\u683c\u578b\u53f7"))),
+        (_("Source Category"), _text(row.get("\u6240\u5c5e\u7c7b\u522b"))),
+        (_("Brand"), _text(row.get("\u54c1\u724c"))),
+        (_("Source UOM"), _text(row.get("\u8ba1\u91cf\u5355\u4f4d"))),
+    ]
+    return "\n".join(f"{label}: {value}" for label, value in details if value)
+
+
+def _parse_packaging(row: dict) -> dict:
+    source_uom = _required_value(row, "\u8ba1\u91cf\u5355\u4f4d")
+    match = re.fullmatch(r"1\s*(?:\u7bb1|\u4ef6)\s*=\s*(\d+(?:\.\d+)?)\s*([\u74f6\u7f50\u542c])", source_uom)
+    if not match:
+        frappe.throw(
+            _("Excel row {0} has an unsupported packaging format {1}. Use a value such as 1\u7bb1=6\u74f6 or 1\u7bb1=24\u7f50.").format(
+                row["_row_number"], source_uom
+            )
+        )
+    source_base_uom = match.group(2)
+    stock_uom = "\u7f50" if source_base_uom == "\u542c" else source_base_uom
+    return {"stock_uom": stock_uom, "conversion_factor": flt(match.group(1))}

@@ -1,6 +1,6 @@
 [project]
 name = "fmcg_wms"
-version = "0.5.3"
+version = "0.5.6"
 description = "Customer shipment and in-transit inventory controls for ERPNext"
 requires-python = ">=3.10"
 authors = [{ name = "快消品WMS系统" }]
