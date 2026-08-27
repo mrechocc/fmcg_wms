@@ -32,6 +32,7 @@ def make_material_transfer(
     customer=None,
     expected_receipt_date=None,
     ignore_permissions: bool = False,
+    submit: bool = True,
 ):
     if source_warehouse == target_warehouse:
         frappe.throw(_("Source Warehouse and Transit Warehouse must be different."))
@@ -75,5 +76,6 @@ def make_material_transfer(
 
     entry.flags.ignore_permissions = ignore_permissions
     entry.insert(ignore_permissions=ignore_permissions)
-    entry.submit()
+    if submit:
+        entry.submit()
     return entry

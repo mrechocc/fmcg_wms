@@ -32,7 +32,7 @@ def get_default_source_warehouse(company: str) -> str | None:
 
 
 def create_transit_transfer(sales_order_name: str, ignore_permissions: bool = False):
-    """Create one standard Stock Entry that moves the order to the transit warehouse."""
+    """Create a draft Stock Entry for the next approved transit dispatch."""
     sales_order = frappe.get_doc("Sales Order", sales_order_name)
     sales_order.check_permission("read")
     if sales_order.docstatus != 1:
@@ -40,10 +40,15 @@ def create_transit_transfer(sales_order_name: str, ignore_permissions: bool = Fa
 
     _require_delivery_mode(sales_order, TRANSIT_DELIVERY_MODE)
     transit_warehouse = get_default_transit_warehouse(sales_order.company)
-    _ensure_no_active_transit_transfer(sales_order)
-    lines = get_dispatch_lines(sales_order)
+    _ensure_no_legacy_transit_shipment(sales_order)
+
+    draft_entry = get_open_transit_transfer(sales_order.name)
+    if draft_entry:
+        return draft_entry
+
+    lines = get_transit_dispatch_lines(sales_order)
     if not lines:
-        frappe.throw(_("Sales Order {0} has no quantity available for transit dispatch.").format(sales_order.name))
+        frappe.throw(_("Sales Order {0} has no quantity remaining for transit dispatch.").format(sales_order.name))
 
     entry = make_material_transfer(
         company=sales_order.company,
@@ -54,8 +59,9 @@ def create_transit_transfer(sales_order_name: str, ignore_permissions: bool = Fa
         sales_order=sales_order.name,
         customer=sales_order.customer,
         expected_receipt_date=sales_order.delivery_date,
-        remarks=_("Transit transfer created automatically from Sales Order {0}.").format(sales_order.name),
+        remarks=_("Awaiting warehouse approval for transit dispatch from Sales Order {0}.").format(sales_order.name),
         ignore_permissions=ignore_permissions,
+        submit=False,
     )
 
     if sales_order.meta.has_field("fmcg_transit_warehouse"):
@@ -64,7 +70,9 @@ def create_transit_transfer(sales_order_name: str, ignore_permissions: bool = Fa
         sales_order.db_set("fmcg_transit_stock_entry", entry.name, update_modified=False)
     sales_order.add_comment(
         "Info",
-        _("Created transit Stock Entry {0}.").format(entry.name),
+        _("Created draft transit Stock Entry {0}; edit this dispatch's actual quantities before approval.").format(
+            entry.name
+        ),
     )
     return entry
 
@@ -95,6 +103,7 @@ def create_immediate_delivery(sales_order_name: str, posting_date=None):
 
 
 def get_dispatch_lines(sales_order) -> list[dict]:
+    """Return all currently undelivered quantities for an immediate delivery."""
     lines = []
     for row in sales_order.items:
         pending_qty = flt(row.qty) - flt(row.delivered_qty)
@@ -118,6 +127,97 @@ def get_dispatch_lines(sales_order) -> list[dict]:
             }
         )
     return lines
+
+
+def get_transit_dispatch_lines(sales_order) -> list[dict]:
+    """Return the not-yet-approved quantity for each Sales Order line."""
+    transferred_quantities = get_submitted_transit_quantities(sales_order.name)
+    lines = []
+    for row in sales_order.items:
+        remaining_qty = flt(row.qty) - flt(transferred_quantities.get(row.name))
+        if remaining_qty <= 0:
+            continue
+        source_warehouse = row.warehouse or sales_order.set_warehouse or get_default_source_warehouse(sales_order.company)
+        if not source_warehouse:
+            frappe.throw(
+                _("Sales Order Item {0} needs a source warehouse before creating a transit transfer.").format(
+                    row.idx
+                )
+            )
+        lines.append(
+            {
+                "sales_order_item": row.name,
+                "item_code": row.item_code,
+                "uom": row.uom,
+                "conversion_factor": row.conversion_factor or 1,
+                "source_warehouse": source_warehouse,
+                "dispatched_qty": remaining_qty,
+            }
+        )
+    return lines
+
+
+def get_open_transit_transfer(sales_order_name: str):
+    entry_name = frappe.db.get_value(
+        "Stock Entry",
+        {
+            "docstatus": 0,
+            "purpose": "Material Transfer",
+            "fmcg_sales_order": sales_order_name,
+        },
+        "name",
+        order_by="modified desc",
+    )
+    return frappe.get_doc("Stock Entry", entry_name) if entry_name else None
+
+
+def get_submitted_transit_quantities(sales_order_name: str, exclude_stock_entry: str | None = None) -> dict[str, float]:
+    """Return approved transfer quantity grouped by Sales Order Item."""
+    filters = {
+        "docstatus": 1,
+        "purpose": "Material Transfer",
+        "fmcg_sales_order": sales_order_name,
+    }
+    if exclude_stock_entry:
+        filters["name"] = ["!=", exclude_stock_entry]
+    entries = frappe.get_all("Stock Entry", filters=filters, pluck="name", limit_page_length=0)
+    if not entries:
+        return {}
+
+    quantities = {}
+    for item in frappe.get_all(
+        "Stock Entry Detail",
+        filters={"parent": ["in", entries], "parenttype": "Stock Entry"},
+        fields=["fmcg_sales_order_item", "qty"],
+        limit_page_length=0,
+    ):
+        if item.fmcg_sales_order_item:
+            quantities[item.fmcg_sales_order_item] = flt(quantities.get(item.fmcg_sales_order_item)) + flt(item.qty)
+    return quantities
+
+
+def get_transit_transfer_status(sales_order_name: str) -> dict:
+    """Return state for Sales Order actions without relying on one Stock Entry link."""
+    sales_order = frappe.get_doc("Sales Order", sales_order_name)
+    sales_order.check_permission("read")
+    submitted_quantities = get_submitted_transit_quantities(sales_order.name)
+    remaining_quantities = [
+        max(flt(row.qty) - flt(submitted_quantities.get(row.name)), 0) for row in sales_order.items
+    ]
+    submitted_count = frappe.db.count(
+        "Stock Entry",
+        {
+            "docstatus": 1,
+            "purpose": "Material Transfer",
+            "fmcg_sales_order": sales_order.name,
+        },
+    )
+    draft_entry = get_open_transit_transfer(sales_order.name)
+    return {
+        "draft_stock_entry": draft_entry.name if draft_entry else None,
+        "has_submitted_transfer": bool(submitted_count),
+        "has_remaining_quantity": any(remaining_quantities),
+    }
 
 
 def get_default_transit_warehouse(company: str) -> str:
@@ -146,15 +246,7 @@ def _require_delivery_mode(sales_order, expected_mode: str) -> None:
         frappe.throw(_("Select delivery mode {0} on the Sales Order before continuing.").format(expected_mode))
 
 
-def _ensure_no_active_transit_transfer(sales_order) -> None:
-    stock_entry_name = sales_order.get("fmcg_transit_stock_entry")
-    if stock_entry_name and frappe.db.get_value("Stock Entry", stock_entry_name, "docstatus") == 1:
-        frappe.throw(
-            _("Sales Order {0} already has submitted transit Stock Entry {1}.").format(
-                sales_order.name, stock_entry_name
-            )
-        )
-
+def _ensure_no_legacy_transit_shipment(sales_order) -> None:
     # Orders created before this upgrade may still point at a legacy shipment.
     shipment_name = sales_order.get("fmcg_customer_shipment")
     if shipment_name and frappe.db.get_value("Customer Shipment", shipment_name, "docstatus") == 1:

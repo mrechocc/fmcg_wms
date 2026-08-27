@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 
 from fmcg_wms.services.sales_order import (
     TRANSIT_DELIVERY_MODE,
@@ -6,6 +7,7 @@ from fmcg_wms.services.sales_order import (
     create_transit_transfer as create_transfer,
     get_default_transit_warehouse,
     get_default_source_warehouse,
+    get_transit_transfer_status as get_transfer_status,
 )
 
 
@@ -17,7 +19,12 @@ def get_default_source_warehouse_for_company(company: str):
 @frappe.whitelist()
 def create_transit_transfer(sales_order_name: str):
     stock_entry = create_transfer(sales_order_name)
-    return {"stock_entry": stock_entry.name}
+    return {"stock_entry": stock_entry.name, "docstatus": stock_entry.docstatus}
+
+
+@frappe.whitelist()
+def get_transit_transfer_status(sales_order_name: str):
+    return get_transfer_status(sales_order_name)
 
 
 @frappe.whitelist()
@@ -34,6 +41,12 @@ def get_transit_delivery_details(sales_orders, company: str):
     sales_orders = list(set(sales_orders or []))
     if not sales_orders:
         return {"transit_orders": []}
+
+    for sales_order_name in sales_orders:
+        sales_order = frappe.get_doc("Sales Order", sales_order_name)
+        sales_order.check_permission("read")
+        if sales_order.company != company:
+            frappe.throw(_("Sales Order company must match the Delivery Note company."))
 
     transit_orders = frappe.get_all(
         "Sales Order",

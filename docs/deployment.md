@@ -32,19 +32,23 @@ bench restart
 ## Daily Workflow
 
 1. Create the Sales Order and choose `Transit Delivery` or `Immediate Delivery`.
-2. Submit a `Transit Delivery` order. The app automatically creates and submits
-   a standard Stock Entry with purpose `Material Transfer`, moving stock from
-   the central warehouse to the Transit warehouse. The Sales Order opens that
-   Stock Entry directly after submission.
-3. Find, filter, print, or export the transfer in `Stock > Stock Entry`. The
-   Stock Entry includes read-only Sales Order, Customer, and expected receipt
-   date fields for traceability.
-4. When the customer accepts the goods, create a Delivery Note from the Sales
-   Order. The app issues the stock from the Transit warehouse automatically.
-5. For customer pickup, choose `Immediate Delivery` and use `Shipping > Confirm
+2. Submit a `Transit Delivery` order. The app creates a draft standard Stock
+   Entry with purpose `Material Transfer` and opens it. This draft does not
+   change stock.
+3. The warehouse changes each line to this dispatch's actual quantity, removes
+   unavailable lines, then uses `Shipping > Approve and Submit`. Only submission
+   moves stock from the central warehouse to the Transit warehouse. Create a
+   further draft transfer from the Sales Order whenever more stock is ready.
+4. Find, filter, print, or export all transfers in `Stock > Stock Entry`. Each
+   entry includes read-only Sales Order, Customer, and expected receipt date
+   fields for traceability.
+5. When the customer accepts the goods, create a Delivery Note from the Sales
+   Order. It issues from the Transit warehouse automatically and cannot exceed
+   the approved-but-not-yet-delivered quantity for that Sales Order line.
+6. For customer pickup, choose `Immediate Delivery` and use `Shipping > Confirm
    Immediate Delivery`; the Delivery Note issues directly from the central
    warehouse.
-6. For a customer return before delivery, create a standard Material Transfer
+7. For a customer return before delivery, create a standard Material Transfer
    from the Transit warehouse back to the central warehouse.
 
 ## Reporting
@@ -56,9 +60,13 @@ quantities by Sales Order line.
 
 ## Acceptance Checks
 
-1. A transit order creates one submitted Material Transfer and reduces the
-   central warehouse by the transferred quantity.
-2. The same quantity appears in the Transit warehouse.
-3. A Delivery Note created from that order uses the Transit warehouse.
-4. The In Transit Inventory report links every new row to a Stock Entry rather
-   than a Customer Shipment.
+1. A transit order creates one draft Material Transfer and does not change
+   stock before approval.
+2. A warehouse-approved transfer reduces the central warehouse and increases
+   the Transit warehouse by its actual quantity.
+3. A further draft can be created for the remaining quantity of the same Sales
+   Order.
+4. A Delivery Note uses the Transit warehouse and cannot exceed the total
+   approved quantity for each Sales Order line.
+5. The In Transit Inventory report allocates delivered quantity across multiple
+   transfers in chronological order.

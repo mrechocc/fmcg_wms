@@ -4,23 +4,29 @@ app_publisher = "\u5feb\u6d88\u54c1WMS\u7cfb\u7edf"
 app_description = "FMCG warehouse management and in-transit inventory controls"
 app_email = "ops@example.invalid"
 app_license = "MIT"
-app_version = "0.4.3"
+app_version = "0.5.0"
 
 app_include_css = "/assets/fmcg_wms/css/sales_order_list.css"
 
 doctype_js = {
     "Sales Order": "public/js/sales_order.js",
     "Delivery Note": "public/js/delivery_note.js",
+    "Stock Entry": "public/js/stock_entry.js",
 }
 
 doctype_list_js = {"Sales Order": "public/js/sales_order_list.js"}
 
 doc_events = {
     "Sales Order": {
-        "on_submit": "fmcg_wms.events.sales_order.auto_dispatch_transit_order",
+        "on_submit": "fmcg_wms.events.sales_order.create_draft_transit_transfer",
     },
     "Delivery Note": {
         "validate": "fmcg_wms.events.delivery_note.apply_transit_warehouse",
+        "before_submit": "fmcg_wms.events.delivery_note.validate_transit_delivery_before_submit",
+    },
+    "Stock Entry": {
+        "before_submit": "fmcg_wms.events.stock_entry.validate_transit_transfer_before_submit",
+        "on_submit": "fmcg_wms.events.stock_entry.record_transit_transfer_submission",
     },
 }
 
