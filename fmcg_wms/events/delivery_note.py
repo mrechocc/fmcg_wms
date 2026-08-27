@@ -5,6 +5,7 @@ from frappe.utils import flt
 from fmcg_wms.services.sales_order import (
     TRANSIT_DELIVERY_MODE,
     get_default_transit_warehouse,
+    get_submitted_delivery_quantities,
     get_submitted_transit_quantities,
 )
 
@@ -58,7 +59,7 @@ def validate_transit_delivery_before_submit(delivery_note) -> None:
         if sales_order.company != delivery_note.company:
             frappe.throw(_("The Delivery Note company must match its linked Sales Order company."))
         transferred_quantities = get_submitted_transit_quantities(sales_order_name)
-        delivered_quantities = _get_submitted_delivery_quantities(sales_order_name, delivery_note.name)
+        delivered_quantities = get_submitted_delivery_quantities(sales_order_name, delivery_note.name)
         for sales_order_item, requested_qty in order_requested_quantities.items():
             available_qty = flt(transferred_quantities.get(sales_order_item)) - flt(
                 delivered_quantities.get(sales_order_item)
@@ -69,23 +70,3 @@ def validate_transit_delivery_before_submit(delivery_note) -> None:
                         sales_order_item, available_qty, requested_qty
                     )
                 )
-
-
-def _get_submitted_delivery_quantities(sales_order_name: str, current_delivery_note: str | None) -> dict[str, float]:
-    rows = frappe.db.sql(
-        """
-        SELECT item.so_detail, COALESCE(SUM(item.qty), 0) AS delivered_qty
-        FROM `tabDelivery Note Item` AS item
-        INNER JOIN `tabDelivery Note` AS delivery_note ON delivery_note.name = item.parent
-        WHERE delivery_note.docstatus = 1
-          AND item.against_sales_order = %(sales_order_name)s
-          AND (%(current_delivery_note)s IS NULL OR item.parent != %(current_delivery_note)s)
-        GROUP BY item.so_detail
-        """,
-        {
-            "sales_order_name": sales_order_name,
-            "current_delivery_note": current_delivery_note,
-        },
-        as_dict=True,
-    )
-    return {row.so_detail: flt(row.delivered_qty) for row in rows if row.so_detail}

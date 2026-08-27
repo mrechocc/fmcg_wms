@@ -9,6 +9,13 @@ frappe.ui.form.on("Sales Order", {
     if (frm.doc.docstatus === 0) set_default_source_warehouse(frm);
     if (frm.doc.docstatus !== 1 || flt(frm.doc.per_delivered) >= 100) return;
 
+    if (
+      frm.doc.fmcg_delivery_mode === "\u5f53\u573a\u4ea4\u4ed8" ||
+      frm.doc.fmcg_delivery_mode === "\u5728\u9014\u4ea4\u4ed8"
+    ) {
+      frm.remove_custom_button(__("Delivery Note"), __("Create"));
+    }
+
     if (frm.doc.fmcg_delivery_mode === "\u5f53\u573a\u4ea4\u4ed8") {
       add_immediate_delivery_button(frm);
     }
@@ -79,14 +86,69 @@ function add_transit_stock_entry_buttons(frm) {
       if (status.has_remaining_quantity || status.draft_stock_entry) {
         add_create_or_open_transfer_button(frm, status.draft_stock_entry);
       }
+      frm.add_custom_button(__("\u67e5\u770b\u5f85\u9001\u8d27\u660e\u7ec6"), () => {
+        show_transit_delivery_availability(frm);
+      }, __("\u53d1\u8d27"));
       if (status.has_submitted_transfer) {
-        frm.add_custom_button(__("\u521b\u5efa\u9500\u552e\u51fa\u5e93\u5355"), () => {
-          frappe.model.open_mapped_doc({
-            method: "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note",
-            frm,
+        frm.add_custom_button(__("\u521b\u5efa\u672c\u6b21\u9001\u8d27\u5355"), () => {
+          frappe.call({
+            method: "fmcg_wms.api.sales_order.create_transit_delivery_note",
+            args: { sales_order_name: frm.doc.name },
+            freeze: true,
+            freeze_message: "\u6b63\u5728\u521b\u5efa\u672c\u6b21\u9001\u8d27\u5355...",
+            callback(response) {
+              const deliveryNote = response.message && response.message.delivery_note;
+              if (deliveryNote) frappe.set_route("Form", "Delivery Note", deliveryNote);
+            },
           });
         }, __("\u53d1\u8d27"));
       }
+    },
+  });
+}
+
+function show_transit_delivery_availability(frm) {
+  frappe.call({
+    method: "fmcg_wms.api.sales_order.get_transit_delivery_availability",
+    args: { sales_order_name: frm.doc.name },
+    freeze: true,
+    callback(response) {
+      const lines = (response.message && response.message.lines) || [];
+      const body = lines.map((line) => `
+        <tr>
+          <td>${frappe.utils.escape_html(line.item_code || "")}</td>
+          <td>${frappe.utils.escape_html(line.item_name || "")}</td>
+          <td class="text-right">${line.ordered_qty}</td>
+          <td class="text-right">${line.approved_qty}</td>
+          <td class="text-right">${line.delivered_qty}</td>
+          <td class="text-right"><strong>${line.available_to_deliver_qty}</strong></td>
+          <td class="text-right">${line.not_transferred_qty}</td>
+          <td>${frappe.utils.escape_html(line.uom || "")}</td>
+        </tr>
+      `).join("");
+      frappe.msgprint({
+        title: __("\u5f85\u9001\u8d27\u660e\u7ec6"),
+        wide: true,
+        message: `
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>${__("\u7269\u6599")}</th>
+                  <th>${__("\u540d\u79f0")}</th>
+                  <th class="text-right">${__("\u8ba2\u5355\u6570\u91cf")}</th>
+                  <th class="text-right">${__("\u5df2\u6838\u51c6\u8c03\u62e8")}</th>
+                  <th class="text-right">${__("\u5df2\u9001\u8d27")}</th>
+                  <th class="text-right">${__("\u672c\u6b21\u53ef\u9001")}</th>
+                  <th class="text-right">${__("\u5c1a\u672a\u8c03\u62e8")}</th>
+                  <th>${__("\u5355\u4f4d")}</th>
+                </tr>
+              </thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        `,
+      });
     },
   });
 }

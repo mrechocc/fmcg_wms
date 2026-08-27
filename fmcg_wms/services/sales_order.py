@@ -2,7 +2,10 @@ import frappe
 from frappe import _
 from frappe.utils import flt, nowdate
 
-from fmcg_wms.services.delivery import create_delivery_note_from_sales_order
+from fmcg_wms.services.delivery import (
+    create_delivery_note_from_sales_order,
+    create_draft_delivery_note_from_sales_order,
+)
 from fmcg_wms.services.stock import make_material_transfer
 
 IMMEDIATE_DELIVERY_MODE = "\u5f53\u573a\u4ea4\u4ed8"
@@ -102,6 +105,40 @@ def create_immediate_delivery(sales_order_name: str, posting_date=None):
     return delivery_note
 
 
+def create_transit_delivery_note(sales_order_name: str, posting_date=None):
+    """Create an editable Delivery Note containing only approved, unreceived transit quantity."""
+    sales_order = frappe.get_doc("Sales Order", sales_order_name)
+    sales_order.check_permission("read")
+    if sales_order.docstatus != 1:
+        frappe.throw(_("Only a submitted Sales Order can create a transit Delivery Note."))
+    _require_delivery_mode(sales_order, TRANSIT_DELIVERY_MODE)
+
+    lines = get_transit_delivery_lines(sales_order)
+    eligible_lines = [line for line in lines if line["available_to_deliver_qty"] > 0]
+    if not eligible_lines:
+        frappe.throw(_("Sales Order {0} has no approved transit quantity available for delivery.").format(sales_order.name))
+
+    transit_warehouse = get_default_transit_warehouse(sales_order.company)
+    quantities_by_so_item = {
+        line["sales_order_item"]: line["available_to_deliver_qty"] for line in eligible_lines
+    }
+    warehouses_by_so_item = {line["sales_order_item"]: transit_warehouse for line in eligible_lines}
+    delivery_note = create_draft_delivery_note_from_sales_order(
+        sales_order.name,
+        quantities_by_so_item,
+        warehouses_by_so_item,
+        posting_date or nowdate(),
+        _("Transit delivery based on approved, undelivered quantity from Sales Order {0}.").format(
+            sales_order.name
+        ),
+        allow_transit_delivery=True,
+    )
+    sales_order.add_comment(
+        "Info", _("Created draft transit Delivery Note {0}.").format(delivery_note.name)
+    )
+    return delivery_note
+
+
 def get_dispatch_lines(sales_order) -> list[dict]:
     """Return all currently undelivered quantities for an immediate delivery."""
     lines = []
@@ -157,6 +194,32 @@ def get_transit_dispatch_lines(sales_order) -> list[dict]:
     return lines
 
 
+def get_transit_delivery_lines(sales_order) -> list[dict]:
+    """Return every order line with its approved, delivered, and currently deliverable quantity."""
+    transferred_quantities = get_submitted_transit_quantities(sales_order.name)
+    delivered_quantities = get_submitted_delivery_quantities(sales_order.name)
+    lines = []
+    for row in sales_order.items:
+        ordered_qty = flt(row.qty)
+        approved_qty = flt(transferred_quantities.get(row.name))
+        delivered_qty = flt(delivered_quantities.get(row.name))
+        lines.append(
+            {
+                "sales_order_item": row.name,
+                "item_code": row.item_code,
+                "item_name": row.item_name,
+                "uom": row.uom,
+                "ordered_qty": ordered_qty,
+                "approved_qty": approved_qty,
+                "delivered_qty": delivered_qty,
+                "available_to_deliver_qty": max(approved_qty - delivered_qty, 0),
+                "not_transferred_qty": max(ordered_qty - approved_qty, 0),
+                "undelivered_qty": max(ordered_qty - delivered_qty, 0),
+            }
+        )
+    return lines
+
+
 def get_open_transit_transfer(sales_order_name: str):
     entry_name = frappe.db.get_value(
         "Stock Entry",
@@ -196,6 +259,29 @@ def get_submitted_transit_quantities(sales_order_name: str, exclude_stock_entry:
     return quantities
 
 
+def get_submitted_delivery_quantities(
+    sales_order_name: str, exclude_delivery_note: str | None = None
+) -> dict[str, float]:
+    """Return submitted Delivery Note quantity grouped by Sales Order Item."""
+    rows = frappe.db.sql(
+        """
+        SELECT item.so_detail, COALESCE(SUM(item.qty), 0) AS delivered_qty
+        FROM `tabDelivery Note Item` AS item
+        INNER JOIN `tabDelivery Note` AS delivery_note ON delivery_note.name = item.parent
+        WHERE delivery_note.docstatus = 1
+          AND item.against_sales_order = %(sales_order_name)s
+          AND (%(exclude_delivery_note)s IS NULL OR item.parent != %(exclude_delivery_note)s)
+        GROUP BY item.so_detail
+        """,
+        {
+            "sales_order_name": sales_order_name,
+            "exclude_delivery_note": exclude_delivery_note,
+        },
+        as_dict=True,
+    )
+    return {row.so_detail: flt(row.delivered_qty) for row in rows if row.so_detail}
+
+
 def get_transit_transfer_status(sales_order_name: str) -> dict:
     """Return state for Sales Order actions without relying on one Stock Entry link."""
     sales_order = frappe.get_doc("Sales Order", sales_order_name)
@@ -218,6 +304,16 @@ def get_transit_transfer_status(sales_order_name: str) -> dict:
         "has_submitted_transfer": bool(submitted_count),
         "has_remaining_quantity": any(remaining_quantities),
     }
+
+
+def get_transit_delivery_availability(sales_order_name: str) -> dict:
+    """Return line-level transit delivery availability for the Sales Order form."""
+    sales_order = frappe.get_doc("Sales Order", sales_order_name)
+    sales_order.check_permission("read")
+    if sales_order.docstatus != 1:
+        frappe.throw(_("Only a submitted Sales Order has transit delivery availability."))
+    _require_delivery_mode(sales_order, TRANSIT_DELIVERY_MODE)
+    return {"lines": get_transit_delivery_lines(sales_order)}
 
 
 def get_default_transit_warehouse(company: str) -> str:

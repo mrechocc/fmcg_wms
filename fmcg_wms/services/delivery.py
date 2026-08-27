@@ -12,6 +12,49 @@ def create_delivery_note_from_sales_order(
     allow_transit_delivery: bool = False,
 ):
     """Create one submitted Delivery Note from selected Sales Order quantities."""
+    delivery_note = build_delivery_note_from_sales_order(
+        sales_order_name,
+        quantities_by_so_item,
+        warehouses_by_so_item,
+        posting_date,
+        remarks,
+        allow_transit_delivery,
+    )
+    delivery_note.insert()
+    delivery_note.submit()
+    return delivery_note
+
+
+def create_draft_delivery_note_from_sales_order(
+    sales_order_name: str,
+    quantities_by_so_item: dict[str, float],
+    warehouses_by_so_item: dict[str, str],
+    posting_date,
+    remarks: str,
+    allow_transit_delivery: bool = False,
+):
+    """Create an editable Delivery Note without issuing stock."""
+    delivery_note = build_delivery_note_from_sales_order(
+        sales_order_name,
+        quantities_by_so_item,
+        warehouses_by_so_item,
+        posting_date,
+        remarks,
+        allow_transit_delivery,
+    )
+    delivery_note.insert()
+    return delivery_note
+
+
+def build_delivery_note_from_sales_order(
+    sales_order_name: str,
+    quantities_by_so_item: dict[str, float],
+    warehouses_by_so_item: dict[str, str],
+    posting_date,
+    remarks: str,
+    allow_transit_delivery: bool = False,
+):
+    """Map selected Sales Order quantities into a Delivery Note document."""
     from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 
     delivery_note = make_delivery_note(sales_order_name)
@@ -40,6 +83,4 @@ def create_delivery_note_from_sales_order(
     delivery_note.run_method("set_missing_values")
     delivery_note.run_method("set_po_nos")
     delivery_note.run_method("calculate_taxes_and_totals")
-    delivery_note.insert()
-    delivery_note.submit()
     return delivery_note

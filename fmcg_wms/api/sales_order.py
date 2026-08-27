@@ -4,9 +4,11 @@ from frappe import _
 from fmcg_wms.services.sales_order import (
     TRANSIT_DELIVERY_MODE,
     create_immediate_delivery as create_delivery,
+    create_transit_delivery_note as create_transit_delivery,
     create_transit_transfer as create_transfer,
     get_default_transit_warehouse,
     get_default_source_warehouse,
+    get_transit_delivery_availability as get_delivery_availability,
     get_transit_transfer_status as get_transfer_status,
 )
 
@@ -31,6 +33,17 @@ def get_transit_transfer_status(sales_order_name: str):
 def create_immediate_delivery(sales_order_name: str, posting_date=None):
     delivery_note = create_delivery(sales_order_name, posting_date)
     return {"delivery_note": delivery_note.name}
+
+
+@frappe.whitelist()
+def create_transit_delivery_note(sales_order_name: str, posting_date=None):
+    delivery_note = create_transit_delivery(sales_order_name, posting_date)
+    return {"delivery_note": delivery_note.name, "docstatus": delivery_note.docstatus}
+
+
+@frappe.whitelist()
+def get_transit_delivery_availability(sales_order_name: str):
+    return get_delivery_availability(sales_order_name)
 
 
 @frappe.whitelist()

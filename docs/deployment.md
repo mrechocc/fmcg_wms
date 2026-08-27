@@ -42,9 +42,11 @@ bench restart
 4. Find, filter, print, or export all transfers in `Stock > Stock Entry`. Each
    entry includes read-only Sales Order, Customer, and expected receipt date
    fields for traceability.
-5. When the customer accepts the goods, create a Delivery Note from the Sales
-   Order. It issues from the Transit warehouse automatically and cannot exceed
-   the approved-but-not-yet-delivered quantity for that Sales Order line.
+5. When goods are ready for the customer, use `Shipping > Create This Delivery
+   Note` on the Sales Order. The draft Delivery Note contains only the
+   approved-but-not-yet-delivered quantity for each order line, and issues from
+   the Transit warehouse automatically. The user may reduce the quantity before
+   submitting it.
 6. For customer pickup, choose `Immediate Delivery` and use `Shipping > Confirm
    Immediate Delivery`; the Delivery Note issues directly from the central
    warehouse.
@@ -66,7 +68,8 @@ quantities by Sales Order line.
    the Transit warehouse by its actual quantity.
 3. A further draft can be created for the remaining quantity of the same Sales
    Order.
-4. A Delivery Note uses the Transit warehouse and cannot exceed the total
-   approved quantity for each Sales Order line.
+4. A transit Delivery Note contains only the approved-but-not-yet-delivered
+   quantity, uses the Transit warehouse, and cannot exceed that quantity when
+   submitted.
 5. The In Transit Inventory report allocates delivered quantity across multiple
    transfers in chronological order.
