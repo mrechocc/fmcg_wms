@@ -1,18 +1,28 @@
 frappe.ui.form.on("External ERP Import", {
   refresh(frm) {
-    if (!frm.doc.source_file || !frm.doc.company) return;
-
-    frm.add_custom_button(__("\u9884\u89c8\u5e76\u6821\u9a8c"), () => run_import(frm, "preview"));
-    frm.add_custom_button(__("\u6267\u884c\u5bfc\u5165"), () => {
-      frappe.confirm(
-        frm.doc.submit_documents
-          ? __("\u6821\u9a8c\u901a\u8fc7\u7684\u5355\u636e\u5c06\u4f1a\u63d0\u4ea4\uff0c\u53ef\u80fd\u4ea7\u751f\u5e93\u5b58\u6d41\u6c34\u3002\u662f\u5426\u7ee7\u7eed\uff1f")
-          : __("\u6821\u9a8c\u901a\u8fc7\u7684\u5355\u636e\u53ea\u4f1a\u521b\u5efa\u4e3a\u8349\u7a3f\u3002\u662f\u5426\u7ee7\u7eed\uff1f"),
-        () => run_import(frm, "run")
-      );
-    });
+    add_import_actions(frm);
+  },
+  source_file(frm) {
+    add_import_actions(frm);
+  },
+  company(frm) {
+    add_import_actions(frm);
   },
 });
+
+function add_import_actions(frm) {
+  if (!frm.doc.source_file || !frm.doc.company) return;
+
+  frm.add_custom_button(__("\u9884\u89c8\u5e76\u6821\u9a8c"), () => run_import(frm, "preview"));
+  frm.add_custom_button(__("\u6267\u884c\u5bfc\u5165"), () => {
+    frappe.confirm(
+      frm.doc.submit_documents
+        ? __("\u6821\u9a8c\u901a\u8fc7\u7684\u5355\u636e\u5c06\u4f1a\u63d0\u4ea4\uff0c\u53ef\u80fd\u4ea7\u751f\u5e93\u5b58\u6d41\u6c34\u3002\u662f\u5426\u7ee7\u7eed\uff1f")
+        : __("\u6821\u9a8c\u901a\u8fc7\u7684\u5355\u636e\u53ea\u4f1a\u521b\u5efa\u4e3a\u8349\u7a3f\u3002\u662f\u5426\u7ee7\u7eed\uff1f"),
+      () => run_import(frm, "run")
+    );
+  });
+}
 
 function run_import(frm, action) {
   frappe.call({
