@@ -14,6 +14,7 @@ frappe.ui.form.on("Sales Order", {
       frm.doc.fmcg_delivery_mode === "\u5728\u9014\u4ea4\u4ed8"
     ) {
       frm.remove_custom_button(__("Delivery Note"), __("Create"));
+      hide_non_wms_create_actions(frm);
     }
 
     if (frm.doc.fmcg_delivery_mode === "\u5f53\u573a\u4ea4\u4ed8") {
@@ -35,6 +36,20 @@ frappe.ui.form.on("Sales Order", {
     });
   },
 });
+
+function hide_non_wms_create_actions(frm) {
+  [
+    "Pick List",
+    "Work Order",
+    "Production Plan",
+    "Material Request",
+    "Request for Raw Materials",
+    "Purchase Order",
+    "Project",
+    "Payment Entry",
+    "Payment Request",
+  ].forEach((label) => frm.remove_custom_button(__(label), __("Create")));
+}
 
 function set_default_source_warehouse(frm) {
   if (!frm.doc.company || frm.doc.set_warehouse || frm.__fmcg_loading_default_warehouse) return;

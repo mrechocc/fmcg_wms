@@ -4,7 +4,7 @@
 separate dispatch from customer receipt while keeping central warehouse stock
 accurate.
 
-Version 0.5.1 uses ERPNext's existing documents for the operating workflow:
+Version 0.5.3 uses ERPNext's existing documents for the operating workflow:
 
 - Sales Order selects `Immediate Delivery` or `Transit Delivery`.
 - A submitted Transit Delivery Sales Order automatically creates a draft
@@ -15,6 +15,11 @@ Version 0.5.1 uses ERPNext's existing documents for the operating workflow:
   undelivered quantity. It issues from the Transit warehouse and cannot exceed
   that quantity when submitted.
 - Customer pickup creates a Delivery Note directly from the central warehouse.
+- Customer master data selects the default delivery mode. Immediate customers issue from the
+  source warehouse, while transit customers continue through approved transfers.
+- `External ERP Import` validates Excel exports before importing Sales Orders or Delivery Notes.
+  It maps external customer, item, warehouse, order, and delivery identifiers, and defaults to
+  draft documents so stock is never posted without an explicit choice.
 
 The app does not modify ERPNext core files. Legacy Customer Shipment records
 remain available only for historical review; new daily operations use Stock

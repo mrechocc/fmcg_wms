@@ -1,0 +1,30 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "creation": "2026-08-27 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series", "import_type", "company", "source_file", "column_break_1", "submit_documents", "result_summary", "error_log"
+ ],
+ "fields": [
+  {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"ERP-IMP-.YYYY.-","default":"ERP-IMP-.YYYY.-","reqd":1},
+  {"fieldname":"import_type","fieldtype":"Select","label":"\u5bfc\u5165\u7c7b\u578b","options":"\u9500\u552e\u8ba2\u5355\n\u9500\u8d27\u5355","default":"\u9500\u552e\u8ba2\u5355","reqd":1,"in_list_view":1},
+  {"fieldname":"company","fieldtype":"Link","label":"\u516c\u53f8","options":"Company","reqd":1,"in_list_view":1},
+  {"fieldname":"source_file","fieldtype":"Attach","label":"\u5916\u90e8ERP Excel\u6587\u4ef6","reqd":1},
+  {"fieldname":"column_break_1","fieldtype":"Column Break"},
+  {"fieldname":"submit_documents","fieldtype":"Check","label":"\u6821\u9a8c\u540e\u63d0\u4ea4\u5355\u636e","description":"\u4e0d\u52fe\u9009\u65f6\u53ea\u521b\u5efa\u8349\u7a3f\uff1b\u52fe\u9009\u540e\u6240\u6709\u6821\u9a8c\u901a\u8fc7\u624d\u4f1a\u63d0\u4ea4\u5355\u636e\u5e76\u5f71\u54cd\u5e93\u5b58\u3002"},
+  {"fieldname":"result_summary","fieldtype":"Small Text","label":"\u5bfc\u5165\u6c47\u603b","read_only":1},
+  {"fieldname":"error_log","fieldtype":"Long Text","label":"\u5f02\u5e38\u6e05\u5355","read_only":1}
+ ],
+ "module": "Fmcg Wms",
+ "name": "External ERP Import",
+ "permissions": [
+  {"role":"System Manager","read":1,"write":1,"create":1,"delete":1,"print":1,"email":1,"share":1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "name",
+ "track_changes": 1
+}

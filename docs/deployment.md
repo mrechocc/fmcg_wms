@@ -14,6 +14,9 @@ Legacy Customer Shipment records are retained only for historical access.
 3. Set the Company's Default Warehouse to the central warehouse. If it is not
    set, the app can use the only active non-Transit warehouse in the company.
 4. Users need permission to create and submit Stock Entry and Delivery Note.
+5. Before using External ERP Import, map external customer, item, and warehouse
+   codes in their `fmcg_external_*_code` fields. Mark shortage or large-account
+   customers as `Transit Delivery`; ordinary customers should remain `Immediate Delivery`.
 
 ## Installation or Upgrade
 
@@ -47,11 +50,30 @@ bench restart
    approved-but-not-yet-delivered quantity for each order line, and issues from
    the Transit warehouse automatically. The user may reduce the quantity before
    submitting it.
+   The standard Sales Order `Create` menu hides non-WMS actions; Sales Invoice
+   remains available to finance users.
 6. For customer pickup, choose `Immediate Delivery` and use `Shipping > Confirm
    Immediate Delivery`; the Delivery Note issues directly from the central
    warehouse.
 7. For a customer return before delivery, create a standard Material Transfer
    from the Transit warehouse back to the central warehouse.
+
+## External ERP Excel Import
+
+1. Log in as a user with the `System Manager` role and open `External ERP Import`.
+2. Select the company, choose `Sales Order` or `Delivery Note`, and attach the
+   matching external ERP Excel export.
+3. Use `Preview and Validate` first. The import stops before creating documents
+   when a customer, item, warehouse, external order, Sales Order Item, or transit
+   quantity cannot be matched.
+4. Import all outstanding external Sales Orders before importing Delivery Notes.
+   A delivery sheet can refer to orders created before its export date.
+5. Leave `Submit Documents After Validation` unchecked for the first run. Review
+   the generated drafts and mapping results. Enabling it submits documents only
+   after the whole file passes validation.
+6. Uploading the same file again skips documents with an existing external order
+   number or external delivery number. Negative delivery quantities are reported
+   as exceptions and must use a return process.
 
 ## Reporting
 
