@@ -632,10 +632,10 @@ def _item_description(row: dict) -> str:
 
 def _parse_packaging(row: dict) -> dict:
     source_uom = _required_value(row, "\u8ba1\u91cf\u5355\u4f4d")
-    match = re.fullmatch(r"1\s*(?:\u7bb1|\u4ef6)\s*=\s*(\d+(?:\.\d+)?)\s*([\u74f6\u7f50\u542c])", source_uom)
+    match = re.fullmatch(r"1\s*(?:\u7bb1|\u4ef6)\s*=\s*(\d+(?:\.\d+)?)\s*([\u4e2a\u74f6\u7f50\u542c\u7ec4])", source_uom)
     if not match:
         frappe.throw(
-            _("Excel row {0} has an unsupported packaging format {1}. Use a value such as 1\u7bb1=6\u74f6 or 1\u7bb1=24\u7f50.").format(
+            _("Excel row {0} has an unsupported packaging format {1}. Use a value such as 1\u7bb1=6\u74f6, 1\u7bb1=24\u7f50, 1\u7bb1=12\u4e2a, or 1\u7bb1=2\u7ec4.").format(
                 row["_row_number"], source_uom
             )
         )

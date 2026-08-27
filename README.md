@@ -4,7 +4,7 @@
 separate dispatch from customer receipt while keeping central warehouse stock
 accurate.
 
-Version 0.5.9 uses ERPNext's existing documents for the operating workflow:
+Version 0.5.10 uses ERPNext's existing documents for the operating workflow:
 
 - Sales Order selects `Immediate Delivery` or `Transit Delivery`.
 - A submitted Transit Delivery Sales Order automatically creates a draft

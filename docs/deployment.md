@@ -69,8 +69,9 @@ bench restart
 3. Choose `Item Master Data`, attach the external item export, and select the target
    Item Group and Sales UOM (normally `件`). ERPNext applies its configured Item
    naming rule; the external item code is stored only as the unique matching key. A
-   packaging value such as `1箱=6瓶` or `1箱=24罐` sets the stock UOM to
-   `瓶` or `罐` and creates the `件` conversion factor. No opening stock,
+   packaging value such as `1箱=6瓶`, `1箱=24罐`, `1箱=12个`, or `1箱=2组` sets
+   the stock UOM to `瓶`, `罐`, `个`, or `组` and creates the `件` conversion
+   factor. No opening stock,
    warehouse quantity, or cost is imported. The special `FREIGHT` item is created as
    a non-stock item.
 4. Use `Preview and Validate` first for each master-data file, then run the import.
