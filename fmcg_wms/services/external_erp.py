@@ -176,8 +176,14 @@ def _plan_customer(
     if len(rows) != 1:
         frappe.throw(_("Customer code {0} appears more than once in the Excel file.").format(external_code))
     row = rows[0]
-    if _text(row.get("\u6027\u8d28")) != "\u5ba2\u6237" or _text(row.get("\u505c\u7528")) in {"\u662f", "yes", "y", "true", "1"}:
-        return {"external_no": external_code, "rows": rows, "skip": True, "existing": _("Filtered: not an active customer")}
+    relationship_type = _text(row.get("\u6027\u8d28"))
+    if "\u5ba2\u6237" not in relationship_type or _text(row.get("\u505c\u7528")) in {"\u662f", "yes", "y", "true", "1"}:
+        return {
+            "external_no": external_code,
+            "rows": rows,
+            "skip": True,
+            "existing": _("Filtered: not an active customer relationship"),
+        }
     if frappe.db.exists("Customer", {"fmcg_external_customer_code": external_code}):
         existing = frappe.db.get_value("Customer", {"fmcg_external_customer_code": external_code}, "name")
         return {"external_no": external_code, "rows": rows, "skip": True, "existing": existing}
