@@ -4,7 +4,7 @@ app_publisher = "\u5feb\u6d88\u54c1WMS\u7cfb\u7edf"
 app_description = "FMCG warehouse management and in-transit inventory controls"
 app_email = "ops@example.invalid"
 app_license = "MIT"
-app_version = "0.5.7"
+app_version = "0.5.8"
 
 app_include_css = "/assets/fmcg_wms/css/sales_order_list.css"
 

@@ -146,6 +146,9 @@ def _build_import_plan(
     if not frappe.db.exists("Company", company):
         return [], [_('Company "{0}" does not exist.').format(company)]
     _require_external_fields()
+    if import_type == CUSTOMER_IMPORT:
+        customer_group = _default_customer_group(customer_group)
+        territory = _default_territory(territory)
     key_field = {
         SALES_ORDER_IMPORT: "\u5355\u636e\u7f16\u53f7",
         DELIVERY_NOTE_IMPORT: "\u5355\u636e\u7f16\u53f7",
@@ -594,6 +597,27 @@ def _row_has_import_key(row: dict, import_type: str) -> bool:
 def _require_link(doctype: str, value: str | None, label: str) -> None:
     if not value or not frappe.db.exists(doctype, value):
         frappe.throw(_("Select an existing {0} before importing.").format(label))
+
+
+def _default_customer_group(value: str | None) -> str:
+    return _default_master_value("Customer Group", value, "\u4e2a\u4eba", _("Customer Group"))
+
+
+def _default_territory(value: str | None) -> str:
+    return _default_master_value("Territory", value, "\u4e2d\u56fd", _("Territory"))
+
+
+def _default_master_value(doctype: str, value: str | None, preferred: str, label: str) -> str:
+    if value and frappe.db.exists(doctype, value):
+        return value
+    if frappe.db.exists(doctype, preferred):
+        return preferred
+    candidate = frappe.db.get_value(doctype, {"is_group": 0}, "name", order_by="lft")
+    if not candidate:
+        candidate = frappe.db.get_value(doctype, {}, "name", order_by="name")
+    if not candidate:
+        frappe.throw(_("Create one {0} before importing customers.").format(label))
+    return candidate
 
 
 def _item_description(row: dict) -> str:

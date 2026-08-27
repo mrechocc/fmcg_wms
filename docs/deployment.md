@@ -61,10 +61,11 @@ bench restart
 ## External ERP Excel Import
 
 1. Log in as a user with the `System Manager` role and open `External ERP Import`.
-2. For first-time setup, choose `Customer Master Data`, attach the external customer
-   export, and select the target Customer Group and Territory. Active rows whose type
-   contains Customer, including Customer/Supplier, are created. No receivable,
-   prepayment, or other financial balance is imported.
+2. For first-time setup, choose `Customer Master Data` and attach the external customer
+   export. Customer Group and Territory are assigned automatically, preferring the
+   existing `个人` and `中国` records. Active rows whose type contains Customer,
+   including Customer/Supplier, are created. No receivable, prepayment, or other
+   financial balance is imported.
 3. Choose `Item Master Data`, attach the external item export, and select the target
    Item Group and Sales UOM (normally `件`). ERPNext applies its configured Item
    naming rule; the external item code is stored only as the unique matching key. A

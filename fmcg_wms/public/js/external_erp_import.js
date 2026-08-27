@@ -22,8 +22,6 @@ function run_import(frm, action) {
       import_type: frm.doc.import_type,
       company: frm.doc.company,
       submit_documents: frm.doc.submit_documents || 0,
-      customer_group: frm.doc.customer_group,
-      territory: frm.doc.territory,
       item_group: frm.doc.item_group,
       sales_uom: frm.doc.sales_uom,
     },
