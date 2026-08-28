@@ -631,14 +631,52 @@ def _item_description(row: dict) -> str:
 
 
 def _parse_packaging(row: dict) -> dict:
+    explicit_stock_uom = _text(row.get("\u57fa\u7840\u5355\u4f4d"))
+    explicit_conversion = _text(row.get("\u6bcf\u4ef6\u57fa\u7840\u5355\u4f4d\u6570\u91cf"))
+    if explicit_stock_uom or explicit_conversion:
+        if not explicit_stock_uom or not explicit_conversion:
+            frappe.throw(
+                _(
+                    "Excel row {0} must provide both \u57fa\u7840\u5355\u4f4d and \u6bcf\u4ef6\u57fa\u7840\u5355\u4f4d\u6570\u91cf."
+                ).format(row["_row_number"])
+            )
+        conversion_factor = flt(explicit_conversion)
+        if conversion_factor <= 0:
+            frappe.throw(
+                _(
+                    "Excel row {0} has an invalid \u6bcf\u4ef6\u57fa\u7840\u5355\u4f4d\u6570\u91cf. It must be greater than zero."
+                ).format(row["_row_number"])
+            )
+        return {"stock_uom": explicit_stock_uom, "conversion_factor": conversion_factor}
+
     source_uom = _required_value(row, "\u8ba1\u91cf\u5355\u4f4d")
+    if source_uom in {"\u4e2a", "\u74f6", "\u7f50", "\u7ec4", "\u542c"}:
+        stock_uom = "\u7f50" if source_uom == "\u542c" else source_uom
+        return {"stock_uom": stock_uom, "conversion_factor": _specification_conversion_factor(row)}
     match = re.fullmatch(r"1\s*(?:\u7bb1|\u4ef6)\s*=\s*(\d+(?:\.\d+)?)\s*([\u4e2a\u74f6\u7f50\u542c\u7ec4])", source_uom)
     if not match:
         frappe.throw(
-            _("Excel row {0} has an unsupported packaging format {1}. Use a value such as 1\u7bb1=6\u74f6, 1\u7bb1=24\u7f50, 1\u7bb1=12\u4e2a, or 1\u7bb1=2\u7ec4.").format(
+            _("Excel row {0} has an unsupported stock UOM {1}. Use \u4e2a, \u74f6, \u7f50, \u7ec4, or a value such as 1\u7bb1=6\u74f6.").format(
                 row["_row_number"], source_uom
             )
         )
     source_base_uom = match.group(2)
     stock_uom = "\u7f50" if source_base_uom == "\u542c" else source_base_uom
     return {"stock_uom": stock_uom, "conversion_factor": flt(match.group(1))}
+
+
+def _specification_conversion_factor(row: dict) -> float:
+    specification = _text(row.get("\u89c4\u683c\u578b\u53f7"))
+    if not specification:
+        return 1
+    factors = []
+    for part in re.split(r"[*xX\u00d7]", specification):
+        if re.search(r"(?:m[lI]|[lL]|\u6beb\u5347|\u5347)", part):
+            continue
+        match = re.search(r"\d+(?:\.\d+)?", part)
+        if match:
+            factors.append(flt(match.group()))
+    conversion_factor = 1
+    for factor in factors:
+        conversion_factor *= factor
+    return conversion_factor or 1
